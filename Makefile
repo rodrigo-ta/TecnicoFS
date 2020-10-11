@@ -27,7 +27,6 @@ main.o: main.c fs/operations.h fs/state.h tecnicofs-api-constants.h
 clean:
 	@echo Cleaning...
 	rm -f fs/*.o *.o tecnicofs
-	rm output.txt
 
 run: tecnicofs
-	./tecnicofs
+	./tecnicofs itest.txt otest.txt 8 mutex
