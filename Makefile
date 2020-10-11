@@ -13,7 +13,7 @@ LDFLAGS=-lm
 all: tecnicofs
 
 tecnicofs: fs/state.o fs/operations.o main.o
-	$(LD) $(CFLAGS) $(LDFLAGS) -o tecnicofs fs/state.o fs/operations.o main.o
+	$(LD) $(CFLAGS) $(LDFLAGS) -o tecnicofs fs/state.o fs/operations.o main.o -lpthread
 
 fs/state.o: fs/state.c fs/state.h tecnicofs-api-constants.h
 	$(CC) $(CFLAGS) -o fs/state.o -c fs/state.c

@@ -4,6 +4,8 @@
 #include <string.h>
 #include <ctype.h>
 #include "fs/operations.h"
+#include <time.h>
+#include <pthread.h>
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
@@ -131,7 +133,7 @@ void processInput(){
     fclose(inputFile);
 }
 
-void applyCommands(){
+void * applyCommands(void * arg){
     while (numberCommands > 0){
         const char* command = removeCommand();
         if (command == NULL){
@@ -180,6 +182,7 @@ void applyCommands(){
             }
         }
     }
+    pthread_exit(NULL);
 }
 
 
@@ -236,6 +239,13 @@ void debug_print() {
 
 int main(int argc, char* argv[]) {
     FILE *outputFile;
+    clock_t begin_timer, end_timer;
+    double run_time;
+    int i,j;
+
+    pthread_t * pthreads_id = malloc(sizeof(* pthreads_id) * numberThreads);
+
+    begin_timer = clock();
 
     /* verify app arguments */
     parseArgs(argc, argv);
@@ -246,15 +256,36 @@ int main(int argc, char* argv[]) {
     /* process input and print tree */
     processInput();
 
+
+
+    /* create slave threads*/
+    for (i = 0; i < numberThreads; i++)
+    {
+        pthread_create(&pthreads_id[headQueue], NULL, &applyCommands, NULL);
+    }
+
+    /* waiting for created threads to to terminate*/
+    for (j = numberThreads; i > 0; j--)
+    {
+        pthread_join(pthreads_id[headQueue - j], NULL);
+        pthread_exit(NULL);
+    }
+    
+
+
     /*DEBUG*/
     debug_print();
 
     outputFile = openFile(OUTPUT);
 
-    applyCommands();
     print_tecnicofs_tree(outputFile);
 
     /* release allocated memory */
     destroy_fs();
+
+    end_timer = clock();
+    run_time = (double)(end_timer - begin_timer) / CLOCKS_PER_SEC;
+    printf("RUN TIME: %f SECONDS\n", run_time);
+
     exit(EXIT_SUCCESS);
 }
