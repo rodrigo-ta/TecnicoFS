@@ -1,5 +1,0 @@
-# isto e’ um exemplo
-c /s d
-c /s/f.txt f
-l /s/f.txt
-d /s/f.exe
