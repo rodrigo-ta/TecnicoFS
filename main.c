@@ -4,7 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "fs/operations.h"
-#include <time.h>
+#include <sys/time.h>
 #include <pthread.h>
 
 #define MAX_COMMANDS 150000
@@ -66,7 +66,7 @@ FILE * openFile(char type){
 
     /* output file */    
     if(type == OUTPUT)
-        fp = fopen(p_outputFile, "a");
+        fp = fopen(p_outputFile, "w");
 
     /* if unable to open the file */
 
@@ -226,6 +226,48 @@ void parseArgs(int argc, char* argv[]){
         displayUsage(argv[0]);
 }
 
+/* Runs threads and gets execution time */
+void run_threads(){
+    pthread_t * pthreads_id;
+    struct timeval begin, end;
+    double duration;
+    int i;
+
+    pthreads_id = (pthread_t*) malloc(sizeof(pthread_t) * numberThreads);
+
+    /* start counting time */
+    gettimeofday(&begin, 0);
+
+
+    /* create slave threads*/
+    for (i = 0; i < numberThreads; i++)
+    {
+        if(pthread_create(&pthreads_id[i], NULL, &applyCommands, NULL)){ // returns zero if successful
+            fprintf(stderr, "Error creating thread.\n");
+            exit(EXIT_FAILURE);
+        }
+
+    }
+
+    /* waiting for created threads to to terminate*/
+    for (i = 0; i < numberThreads; i++)
+    {
+        if(pthread_join(pthreads_id[i], NULL)){ // returns zero if successful
+            fprintf(stderr, "Error joining thread.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    /* stop counting time */
+    gettimeofday(&end, 0);
+    duration = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) * 1e-6;
+
+    free(pthreads_id);
+
+    fprintf(stdout, "TecnicoFS completed in %0.4f seconds.", duration);
+}
+
+
 void debug_print() {
     int i;
 
@@ -239,9 +281,6 @@ void debug_print() {
 
 int main(int argc, char* argv[]) {
     FILE *outputFile;
-    int i;
-
-    pthread_t * pthreads_id = malloc(sizeof(* pthreads_id) * numberThreads);
 
     /* verify app arguments */
     parseArgs(argc, argv);
@@ -252,21 +291,7 @@ int main(int argc, char* argv[]) {
     /* process input and print tree */
     processInput();
 
-
-
-    /* create slave threads*/
-    for (i = 0; i < numberThreads; i++)
-    {
-        pthread_create(&pthreads_id[i], NULL, &applyCommands, NULL);
-    }
-    /* waiting for created threads to to terminate*/
-    for (i = 0; i < numberThreads; i++)
-    {
-        pthread_join(pthreads_id[i], NULL);
-        pthread_exit(NULL);
-    }
-
-
+    run_threads();
 
     /*DEBUG*/
     debug_print();
