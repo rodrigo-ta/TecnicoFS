@@ -17,12 +17,18 @@
 #define INPUT 4
 #define OUTPUT 5
 
+#define TRUE 1
+#define FALSE 0
+
 int numberThreads = 0;
 int synchStrategy;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
+
+/* initialize mutex*/
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* pointer to string of input file */
 char *p_inputFile = NULL;
@@ -134,53 +140,96 @@ void processInput(){
 }
 
 void * applyCommands(void * arg){
-    while (numberCommands > 0){
-        const char* command = removeCommand();
-        if (command == NULL){
-            continue;
-        }
 
-        char token, type;
-        char name[MAX_INPUT_SIZE];
-        int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
-        if (numTokens < 2) {
-            fprintf(stderr, "Error: invalid command in Queue\n");
-            exit(EXIT_FAILURE);
-        }
+    while (TRUE){
 
-        int searchResult;
-        switch (token) {
-            case 'c':
-                switch (type) {
-                    case 'f':
-                        printf("Create file: %s\n", name);
-                        create(name, T_FILE);/* condition */
-                        break;
-                    case 'd':
-                        printf("Create directory: %s\n", name);
-                        create(name, T_DIRECTORY);
-                        break;
-                    default:
-                        fprintf(stderr, "Error: invalid node type\n");
-                        exit(EXIT_FAILURE);
-                }
-                break;
-            case 'l': 
-                searchResult = lookup(name);
-                if (searchResult >= 0)
-                    printf("Search: %s found\n", name);
-                else
-                    printf("Search: %s not found\n", name);
-                break;
-            case 'd':
-                printf("Delete: %s\n", name);
-                delete(name);
-                break;
-            default: { /* error */
-                fprintf(stderr, "Error: command to apply\n");
+        /* lock mutex*/
+        pthread_mutex_lock(&mutex);
+
+        if (numberCommands != 0)
+        {
+
+            const char* command = removeCommand();
+            if (command == NULL){
+
+                pthread_mutex_unlock(&mutex);
+
+                continue;
+            }
+
+            char token, type;
+            char name[MAX_INPUT_SIZE];
+            int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
+            if (numTokens < 2) {
+                fprintf(stderr, "Error: invalid command in Queue\n");
+
+                pthread_mutex_unlock(&mutex);
+
                 exit(EXIT_FAILURE);
             }
+
+            int searchResult;
+            switch (token) {
+                case 'c':
+                    switch (type) {
+                        case 'f':
+                            printf("Create file: %s\n", name);
+
+                            pthread_mutex_unlock(&mutex);
+
+                            create(name, T_FILE);/* condition */
+                            break;
+                        case 'd':
+                            printf("Create directory: %s\n", name);
+
+                            pthread_mutex_unlock(&mutex);
+
+                            create(name, T_DIRECTORY);
+                            break;
+                        default:
+                            fprintf(stderr, "Error: invalid node type\n");
+
+                            pthread_mutex_unlock(&mutex);
+
+                            exit(EXIT_FAILURE);
+                    }
+                    break;
+                case 'l':
+
+                    pthread_mutex_unlock(&mutex);
+
+                    searchResult = lookup(name);
+                    if (searchResult >= 0)
+                    {
+                        printf("Search: %s found\n", name);
+                    }
+                    else
+                    {
+                        printf("Search: %s not found\n", name);
+                    }
+                    break;
+                case 'd':
+                    printf("Delete: %s\n", name);
+                    
+                    pthread_mutex_unlock(&mutex);
+
+                    delete(name);
+                    break;
+                default: { /* error */
+                    fprintf(stderr, "Error: command to apply\n");
+
+                    pthread_mutex_unlock(&mutex);
+                    
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
+        else
+        {
+            pthread_mutex_unlock(&mutex);
+            pthread_exit(NULL);
+        }
+        
     }
     pthread_exit(NULL);
 }
@@ -264,19 +313,7 @@ void run_threads(){
 
     free(pthreads_id);
 
-    fprintf(stdout, "TecnicoFS completed in %0.4f seconds.", duration);
-}
-
-
-void debug_print() {
-    int i;
-
-    printf("\t___DEBUG___\t\n");
-    printf("|\tCOMMANDS\t|\n");
-    for (i = 0; i < numberCommands; i++)
-    {
-        printf("|%s", inputCommands[i]);
-    };
+    fprintf(stdout, "TecnicoFS completed in %0.4f seconds.\n", duration);
 }
 
 int main(int argc, char* argv[]) {
@@ -292,9 +329,6 @@ int main(int argc, char* argv[]) {
     processInput();
 
     run_threads();
-
-    /*DEBUG*/
-    debug_print();
 
     outputFile = openFile(OUTPUT);
 
