@@ -139,6 +139,40 @@ void processInput(){
     fclose(inputFile);
 }
 
+void sync_init(){
+    switch (synchStrategy){
+        case MUTEX:
+            if(pthread_mutex_init(&mutex, NULL)){ // returns zero if successful
+                fprintf(stderr, "Error: couldn't initiate mutex.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+
+        case RWLOCK:
+            break;
+
+        case NOSYNC:
+            break;
+    }
+}
+
+void sync_close(){
+    switch (synchStrategy){
+        case MUTEX:
+            if(pthread_mutex_destroy(&mutex)){ // returns zero if successful
+                fprintf(stderr, "Error: couldn't destroy mutex.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+
+        case RWLOCK:
+            break;
+
+        case NOSYNC:
+            break;
+    }
+}
+
 void sync_lock(){
     switch (synchStrategy){
         case MUTEX:
@@ -259,9 +293,7 @@ void * applyCommands(void * arg){
     pthread_exit(NULL);
 }
 
-
-
-
+/* Command line and argument passing */
 void parseArgs(int argc, char* argv[]){
     char buffer[5];
     if(argc == 5){
@@ -288,12 +320,13 @@ void parseArgs(int argc, char* argv[]){
             synchStrategy = NOSYNC;
 
         else{
-            fprintf(stderr, "Error: invalid synchstrategy\n");
+            fprintf(stderr, "Error: invalid sync strategy\n");
             exit(EXIT_FAILURE);
         }
 
+        /* Nosync strategy requires only 1 thread */
         if(synchStrategy == NOSYNC && numberThreads != 1){
-            fprintf(stderr, "Error: synchstrategy and numberThreads are out of sync\n");
+            fprintf(stderr, "Error: Nosync strategy requires only 1 thread\n");
             exit(EXIT_FAILURE);
         }
 
@@ -355,11 +388,15 @@ int main(int argc, char* argv[]) {
     /* process input and print tree */
     processInput();
 
+    sync_init();
+
     run_threads();
 
     outputFile = openFile(OUTPUT);
 
     print_tecnicofs_tree(outputFile);
+    
+    sync_close();
 
     /* release allocated memory */
     destroy_fs();
