@@ -139,19 +139,44 @@ void processInput(){
     fclose(inputFile);
 }
 
+void sync_lock(){
+    switch (synchStrategy){
+        case MUTEX:
+            pthread_mutex_lock(&mutex);
+            break;
+        case RWLOCK:
+            break;
+        case NOSYNC:
+            break;
+    }
+}
+
+void sync_unlock(){
+    switch (synchStrategy){
+        case MUTEX:
+            pthread_mutex_unlock(&mutex);
+            break;
+        case RWLOCK:
+            break;
+        case NOSYNC:
+            break;
+    }
+}
+
 void * applyCommands(void * arg){
 
     while (TRUE){
 
         /* lock mutex*/
-        pthread_mutex_lock(&mutex);
+        sync_lock();
 
         if (numberCommands != 0)
         {
 
             const char* command = removeCommand();
             if (command == NULL){
-
+                
+                sync_unlock();
                 pthread_mutex_unlock(&mutex);
 
                 continue;
@@ -163,7 +188,7 @@ void * applyCommands(void * arg){
             if (numTokens < 2) {
                 fprintf(stderr, "Error: invalid command in Queue\n");
 
-                pthread_mutex_unlock(&mutex);
+                sync_unlock();
 
                 exit(EXIT_FAILURE);
             }
@@ -175,28 +200,28 @@ void * applyCommands(void * arg){
                         case 'f':
                             printf("Create file: %s\n", name);
 
-                            pthread_mutex_unlock(&mutex);
+                            sync_unlock();
 
                             create(name, T_FILE);/* condition */
                             break;
                         case 'd':
                             printf("Create directory: %s\n", name);
 
-                            pthread_mutex_unlock(&mutex);
+                            sync_unlock();
 
                             create(name, T_DIRECTORY);
                             break;
                         default:
                             fprintf(stderr, "Error: invalid node type\n");
 
-                            pthread_mutex_unlock(&mutex);
+                            sync_unlock();
 
                             exit(EXIT_FAILURE);
                     }
                     break;
                 case 'l':
 
-                    pthread_mutex_unlock(&mutex);
+                    sync_unlock();
 
                     searchResult = lookup(name);
                     if (searchResult >= 0)
@@ -211,14 +236,14 @@ void * applyCommands(void * arg){
                 case 'd':
                     printf("Delete: %s\n", name);
                     
-                    pthread_mutex_unlock(&mutex);
+                    sync_unlock();
 
                     delete(name);
                     break;
                 default: { /* error */
                     fprintf(stderr, "Error: command to apply\n");
 
-                    pthread_mutex_unlock(&mutex);
+                    sync_unlock();
                     
                     exit(EXIT_FAILURE);
                 }
@@ -226,13 +251,15 @@ void * applyCommands(void * arg){
         }
         else
         {
-            pthread_mutex_unlock(&mutex);
+            sync_unlock();
             pthread_exit(NULL);
         }
         
     }
     pthread_exit(NULL);
 }
+
+
 
 
 void parseArgs(int argc, char* argv[]){
