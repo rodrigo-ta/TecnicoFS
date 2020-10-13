@@ -4,15 +4,14 @@
 #include <string.h>
 #include <ctype.h>
 #include "fs/operations.h"
-#include <sys/time.h>
+#include "sync.h"
+#include "mutex.h"
 #include <pthread.h>
+#include <sys/time.h>
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
-
-#define MUTEX 1
-#define RWLOCK 2
-#define NOSYNC 3
+#define MAX_SYNC_CHAR 7
 
 #define INPUT 4
 #define OUTPUT 5
@@ -21,14 +20,14 @@
 #define FALSE 0
 
 int numberThreads = 0;
+
 int synchStrategy;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
 
-/* initialize mutex*/
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex;
 
 /* pointer to string of input file */
 char *p_inputFile = NULL;
@@ -139,70 +138,12 @@ void processInput(){
     fclose(inputFile);
 }
 
-void sync_init(){
-    switch (synchStrategy){
-        case MUTEX:
-            if(pthread_mutex_init(&mutex, NULL)){ // returns zero if successful
-                fprintf(stderr, "Error: couldn't initiate mutex.\n");
-                exit(EXIT_FAILURE);
-            }
-            break;
-
-        case RWLOCK:
-            break;
-
-        case NOSYNC:
-            break;
-    }
-}
-
-void sync_close(){
-    switch (synchStrategy){
-        case MUTEX:
-            if(pthread_mutex_destroy(&mutex)){ // returns zero if successful
-                fprintf(stderr, "Error: couldn't destroy mutex.\n");
-                exit(EXIT_FAILURE);
-            }
-            break;
-
-        case RWLOCK:
-            break;
-
-        case NOSYNC:
-            break;
-    }
-}
-
-void sync_lock(){
-    switch (synchStrategy){
-        case MUTEX:
-            pthread_mutex_lock(&mutex);
-            break;
-        case RWLOCK:
-            break;
-        case NOSYNC:
-            break;
-    }
-}
-
-void sync_unlock(){
-    switch (synchStrategy){
-        case MUTEX:
-            pthread_mutex_unlock(&mutex);
-            break;
-        case RWLOCK:
-            break;
-        case NOSYNC:
-            break;
-    }
-}
-
 void * applyCommands(void * arg){
 
     while (TRUE){
 
         /* lock mutex*/
-        sync_lock();
+        mutex_lock(&mutex);
 
         if (numberCommands != 0)
         {
@@ -210,8 +151,7 @@ void * applyCommands(void * arg){
             const char* command = removeCommand();
             if (command == NULL){
                 
-                sync_unlock();
-                pthread_mutex_unlock(&mutex);
+                mutex_unlock(&mutex);
 
                 continue;
             }
@@ -222,7 +162,7 @@ void * applyCommands(void * arg){
             if (numTokens < 2) {
                 fprintf(stderr, "Error: invalid command in Queue\n");
 
-                sync_unlock();
+                mutex_unlock(&mutex);
 
                 exit(EXIT_FAILURE);
             }
@@ -234,28 +174,28 @@ void * applyCommands(void * arg){
                         case 'f':
                             printf("Create file: %s\n", name);
 
-                            sync_unlock();
+                            mutex_unlock(&mutex);
 
                             create(name, T_FILE);/* condition */
                             break;
                         case 'd':
                             printf("Create directory: %s\n", name);
 
-                            sync_unlock();
+                            mutex_unlock(&mutex);
 
                             create(name, T_DIRECTORY);
                             break;
                         default:
                             fprintf(stderr, "Error: invalid node type\n");
 
-                            sync_unlock();
+                            mutex_unlock(&mutex);
 
                             exit(EXIT_FAILURE);
                     }
                     break;
                 case 'l':
 
-                    sync_unlock();
+                    mutex_unlock(&mutex);
 
                     searchResult = lookup(name);
                     if (searchResult >= 0)
@@ -270,14 +210,14 @@ void * applyCommands(void * arg){
                 case 'd':
                     printf("Delete: %s\n", name);
                     
-                    sync_unlock();
+                    mutex_unlock(&mutex);
 
                     delete(name);
                     break;
                 default: { /* error */
                     fprintf(stderr, "Error: command to apply\n");
 
-                    sync_unlock();
+                    mutex_unlock(&mutex);
                     
                     exit(EXIT_FAILURE);
                 }
@@ -285,7 +225,7 @@ void * applyCommands(void * arg){
         }
         else
         {
-            sync_unlock();
+            mutex_unlock(&mutex);
             pthread_exit(NULL);
         }
         
@@ -295,11 +235,10 @@ void * applyCommands(void * arg){
 
 /* Command line and argument passing */
 void parseArgs(int argc, char* argv[]){
-    char buffer[5];
+    char buffer[MAX_SYNC_CHAR];
     if(argc == 5){
         p_inputFile = argv[1];
         p_outputFile = argv[2];
-
         numberThreads = atoi(argv[3]);
 
         if(numberThreads == 0){
@@ -308,7 +247,7 @@ void parseArgs(int argc, char* argv[]){
         }
         
         strcpy(buffer, argv[4]);
-
+        
         /* checks if synchstrategy is valid */
         if(!strcmp(buffer, "mutex"))
             synchStrategy = MUTEX;
@@ -329,7 +268,6 @@ void parseArgs(int argc, char* argv[]){
             fprintf(stderr, "Error: Nosync strategy requires only 1 thread\n");
             exit(EXIT_FAILURE);
         }
-
     }
     else
         displayUsage(argv[0]);
@@ -347,20 +285,16 @@ void run_threads(){
     /* start counting time */
     gettimeofday(&begin, 0);
 
-
     /* create slave threads*/
-    for (i = 0; i < numberThreads; i++)
-    {
+    for (i = 0; i < numberThreads; i++){
         if(pthread_create(&pthreads_id[i], NULL, &applyCommands, NULL)){ // returns zero if successful
             fprintf(stderr, "Error creating thread.\n");
             exit(EXIT_FAILURE);
         }
-
     }
 
     /* waiting for created threads to to terminate*/
-    for (i = 0; i < numberThreads; i++)
-    {
+    for (i = 0; i < numberThreads; i++){
         if(pthread_join(pthreads_id[i], NULL)){ // returns zero if successful
             fprintf(stderr, "Error joining thread.\n");
             exit(EXIT_FAILURE);
@@ -371,6 +305,7 @@ void run_threads(){
     gettimeofday(&end, 0);
     duration = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) * 1e-6;
 
+    /* Free memory associated to pthreads_id */
     free(pthreads_id);
 
     fprintf(stdout, "TecnicoFS completed in %0.4f seconds.\n", duration);
@@ -388,7 +323,7 @@ int main(int argc, char* argv[]) {
     /* process input and print tree */
     processInput();
 
-    sync_init();
+    mutex_init(&mutex);
 
     run_threads();
 
@@ -396,7 +331,8 @@ int main(int argc, char* argv[]) {
 
     print_tecnicofs_tree(outputFile);
     
-    sync_close();
+    mutex_destroy(&mutex);
+
 
     /* release allocated memory */
     destroy_fs();
