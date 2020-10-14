@@ -35,6 +35,11 @@ char *p_inputFile = NULL;
 /* pointer to string of output file */
 char *p_outputFile = NULL;
 
+/* write error message into stdin and exit program */
+void exit_with_error(const char* err_msg){
+    fprintf(stderr, "%s", err_msg);
+    exit(EXIT_FAILURE);
+}
 
 int insertCommand(char* data) {
     if(numberCommands != MAX_COMMANDS) {
@@ -64,25 +69,18 @@ void displayUsage(char* appName){
 
 FILE * openFile(char type){
     FILE * fp;
-    
-    /* input file */
-    if(type == INPUT)
+    /* INPUT file */
+    if(type == INPUT){
         fp = fopen(p_inputFile, "r");
-
-    /* output file */    
-    if(type == OUTPUT)
-        fp = fopen(p_outputFile, "w");
-
-    /* if unable to open the file */
-
-    if(!fp){
-        if(type == INPUT)
-            fprintf(stderr, "Error: invalid input file\n");
-        if(type == OUTPUT)
-            fprintf(stderr, "Error: invalid output file\n");
-        exit(EXIT_FAILURE);
+        if(!fp)
+            exit_with_error("Error: invalid input file\n");
     }
-
+    /* OUTPUT file */
+    else{
+        fp = fopen(p_outputFile, "w");
+        if(!fp)
+            exit_with_error("Error: invalid output file\n");
+    }
     return fp;
 }
 
@@ -138,7 +136,7 @@ void processInput(){
     fclose(inputFile);
 }
 
-void * applyCommands(void * arg){
+void * applyCommands(){
 
     while (TRUE){
 
@@ -226,11 +224,11 @@ void * applyCommands(void * arg){
         else
         {
             mutex_unlock(&mutex);
-            pthread_exit(NULL);
+            return NULL;
         }
         
     }
-    pthread_exit(NULL);
+    return NULL;
 }
 
 /* Command line and argument passing */
@@ -241,10 +239,8 @@ void parseArgs(int argc, char* argv[]){
         p_outputFile = argv[2];
         numberThreads = atoi(argv[3]);
 
-        if(numberThreads == 0){
-            fprintf(stderr, "Error: invalid number of threads\n");
-            exit(EXIT_FAILURE);
-        }
+        if(numberThreads == 0)
+            exit_with_error("Error: invalid number of threads\n");
         
         strcpy(buffer, argv[4]);
         
@@ -258,56 +254,67 @@ void parseArgs(int argc, char* argv[]){
         else if(!strcmp(buffer, "nosync"))
             synchStrategy = NOSYNC;
 
-        else{
-            fprintf(stderr, "Error: invalid sync strategy\n");
-            exit(EXIT_FAILURE);
-        }
+        else
+            exit_with_error("Error: invalid sync strategy\n");
 
         /* Nosync strategy requires only 1 thread */
-        if(synchStrategy == NOSYNC && numberThreads != 1){
-            fprintf(stderr, "Error: Nosync strategy requires only 1 thread\n");
-            exit(EXIT_FAILURE);
-        }
+        if(synchStrategy == NOSYNC && numberThreads != 1)
+            exit_with_error("Error: Nosync strategy requires only 1 thread\n");
     }
     else
         displayUsage(argv[0]);
 }
 
-/* Runs threads and gets execution time */
+/* create slave threads*/
+void create_threads(pthread_t * pthreads_id){
+    int i;
+    for (i = 0; i < numberThreads; i++){
+        if(pthread_create(&pthreads_id[i], NULL, &applyCommands, NULL)) // returns zero if successful
+            exit_with_error("Error creating thread.\n");
+    }
+}
+
+/* waiting for created threads to to terminate*/
+void join_threads(pthread_t * pthreads_id){
+    int i;
+    for (i = 0; i < numberThreads; i++){
+        if(pthread_join(pthreads_id[i], NULL)) // returns zero if successful
+            exit_with_error("Error joining thread.\n");
+    }
+}
+
+/* Free memory associated to pthreads_id */
+void free_threads(pthread_t * pthreads_id){
+    free(pthreads_id);
+}
+
+/* Runs threads and prints threads execution time */
 void run_threads(){
     pthread_t * pthreads_id;
     struct timeval begin, end;
     double duration;
-    int i;
 
-    pthreads_id = (pthread_t*) malloc(sizeof(pthread_t) * numberThreads);
+    if(synchStrategy != NOSYNC)
+        pthreads_id = (pthread_t*) malloc(sizeof(pthread_t) * numberThreads);
 
     /* start counting time */
     gettimeofday(&begin, 0);
 
-    /* create slave threads*/
-    for (i = 0; i < numberThreads; i++){
-        if(pthread_create(&pthreads_id[i], NULL, &applyCommands, NULL)){ // returns zero if successful
-            fprintf(stderr, "Error creating thread.\n");
-            exit(EXIT_FAILURE);
-        }
+    if(synchStrategy != NOSYNC){
+        create_threads(pthreads_id);
+        join_threads(pthreads_id);
     }
-
-    /* waiting for created threads to to terminate*/
-    for (i = 0; i < numberThreads; i++){
-        if(pthread_join(pthreads_id[i], NULL)){ // returns zero if successful
-            fprintf(stderr, "Error joining thread.\n");
-            exit(EXIT_FAILURE);
-        }
-    }
+    else
+        applyCommands();
 
     /* stop counting time */
     gettimeofday(&end, 0);
     duration = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) * 1e-6;
 
-    /* Free memory associated to pthreads_id */
-    free(pthreads_id);
+    if(synchStrategy != NOSYNC)
+        free_threads(pthreads_id);
 
+    /* print threads execution time */
     fprintf(stdout, "TecnicoFS completed in %0.4f seconds.\n", duration);
 }
 
