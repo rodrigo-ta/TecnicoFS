@@ -46,13 +46,17 @@ void init_fs() {
 	sync_init();
 	inode_table_init();
 	
+	sync_write_lock();
 	/* create root inode */
 	int root = inode_create(T_DIRECTORY);
 	
 	if (root != FS_ROOT) {
+		sync_unlock();
+		sync_destroy();
 		printf("failed to create node for tecnicofs root\n");
 		exit(EXIT_FAILURE);
 	}
+	sync_unlock();
 }
 
 
@@ -122,10 +126,11 @@ int create(char *name, type nodeType){
 	type pType;
 	union Data pdata;
 
-	sync_write_lock();
 	strcpy(name_copy, name);
 
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
+
+	sync_write_lock();
 
 	parent_inumber = lookup(parent_name);
 
@@ -189,10 +194,11 @@ int delete(char *name){
 	type pType, cType;
 	union Data pdata, cdata;
 
-	sync_write_lock();
 	strcpy(name_copy, name);
 
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
+
+	sync_write_lock();
 
 	parent_inumber = lookup(parent_name);
 
@@ -262,7 +268,7 @@ int delete(char *name){
 int lookup(char *name) {
 	char full_path[MAX_FILE_NAME];
 	char delim[] = "/";
-	bool locked;
+	bool new_lock;
 
 	strcpy(full_path, name);
 
@@ -273,9 +279,7 @@ int lookup(char *name) {
 	type nType;
 	union Data data;
 
-	locked = sync_try_lock();
-	fputs(locked ? "TRUE\n" : "FALSE\n", stdout);
-	fflush(stdout);
+	new_lock= sync_try_lock();
 
 	/* get root inode data */
 	inode_get(current_inumber, &nType, &data);
@@ -290,7 +294,7 @@ int lookup(char *name) {
 		path = strtok(NULL, delim);
 	}
 
-	if (locked)
+	if (new_lock)
 	{
 		sync_unlock();
 	}

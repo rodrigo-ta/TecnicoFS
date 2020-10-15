@@ -1,3 +1,7 @@
+/* 
+ * HEADER FILE FOR MUTEX
+ */
+
 #ifndef _MUTEX_
 #define _MUTEX_
 

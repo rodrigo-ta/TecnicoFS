@@ -1,3 +1,7 @@
+/* 
+ * SOURCE FILE OF MUTEX LOCKS SYNCHRONIZATION FOR APPLYING COMMANDS
+ */
+
 #include "mutex.h"
 
 /* Initializes mutex lock */

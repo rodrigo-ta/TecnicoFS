@@ -1,3 +1,7 @@
+/* 
+ * HEADER FILE FOR SYNC
+ */
+
 #ifndef _SYNC_
 #define _SYNC_
 

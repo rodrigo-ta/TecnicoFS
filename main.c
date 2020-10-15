@@ -1,3 +1,11 @@
+/* 
+ * SISTEMAS OPERATIVOS - PROJETO (1/3) - TECNICOFS
+ * 
+ * 92513 - Mafalda Ferreira
+ * 92553 - Rodrigo Antunes
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>

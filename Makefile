@@ -32,22 +32,7 @@ main.o: main.c sync.h mutex.h fs/operations.h fs/state.h tecnicofs-api-constants
 
 clean:
 	@echo Cleaning...
-	rm -f fs/*.o *.o tecnicofs otest.txt out1.txt out2.txt out3.txt out4.txt
+	rm -f fs/*.o *.o *.txt tecnicofs
 
 run: tecnicofs
-	./tecnicofs itest.txt otest.txt 8 mutex
-
-run0: tecnicofs
-	./tecnicofs inputs/test1.txt out1.txt 1 nosync
-
-run1: tecnicofs
-	./tecnicofs inputs/test1.txt out1.txt 3 mutex
-
-run2: tecnicofs
-	./tecnicofs inputs/test2.txt out2.txt 1 nosync
-
-run3: tecnicofs
-	./tecnicofs inputs/test3.txt out3.txt 2 rwlock
-
-run4: tecnicofs
-	./tecnicofs inputs/test4.txt out4.txt 8 rwlock	
+	./tecnicofs

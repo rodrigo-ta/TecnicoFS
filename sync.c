@@ -1,3 +1,7 @@
+/* 
+ * SOURCE FILE OF GLOBAL LOCKS (MUTEX OR RWLOCK) TO FS
+ */
+
 #include "sync.h"
 
 /* Initializes mutex lock or read-write lock */
@@ -22,6 +26,9 @@ void sync_init(){
         /* Just presenting sync strategy. */
         case NOSYNC:
             break;
+
+        default:
+            exit(EXIT_FAILURE);
     }
 }
 
@@ -48,29 +55,36 @@ void sync_read_lock(){
         /* Just presenting sync strategy. */
         case NOSYNC:
             break;
+
+        default:
+            exit(EXIT_FAILURE);
     }
 }
 
-/*Checks if sync strategy is currently in use*/
+/* Checks if sync lock is currently in use. If not, locks it */
+/* Does nothing if sync strategy is nosync */
 bool sync_try_lock(){
     switch (synchStrategy)
     {
-    case MUTEX:
-        if((pthread_mutex_trylock(&mutexlock)) == 0){
-            return true;
-        };
-        break;
-    
-    case RWLOCK:
-        if((pthread_rwlock_tryrdlock(&rwlock)) == 0){
-            return true;
-        };
-        break;
+        case MUTEX:
+            if((pthread_mutex_trylock(&mutexlock)) == 0){
+                return true;
+            };
+            break;
+        
+        case RWLOCK:
+            if((pthread_rwlock_tryrdlock(&rwlock)) == 0){
+                return true;
+            };
+            break;
 
-    default:
-        break;
+        /* Just presenting sync strategy. */
+        case NOSYNC:
+            break;
+
+        default:
+            exit(EXIT_FAILURE);
     }
-
     return false;
 }
 
@@ -96,6 +110,9 @@ void sync_write_lock(){
         /* Just presenting sync strategy. */
         case NOSYNC:
             break;
+
+        default:
+            exit(EXIT_FAILURE);
     }
 }
 
@@ -145,5 +162,8 @@ void sync_destroy(){
         /* Just presenting sync strategy. */
         case NOSYNC:
             break;
+
+        default:
+            exit(EXIT_FAILURE);
     }
 }
