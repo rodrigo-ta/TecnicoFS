@@ -9,6 +9,7 @@
 #define RWLOCK 2
 #define NOSYNC 3
 
+int synchStrategy;
 
 /* mutex lock */
 pthread_mutex_t mutexlock;
@@ -17,12 +18,11 @@ pthread_mutex_t mutexlock;
 pthread_rwlock_t rwlock;
 
 
-void sync_init(int);
-void sync_lock(int);
-void sync_read_lock(int);
-void sync_write_lock(int);
-void sync_unlock(int);
-void sync_destroy(int);
+void sync_init();
+void sync_read_lock();
+void sync_write_lock();
+void sync_unlock();
+void sync_destroy();
 void mutex_init();
 void mutex_lock();
 void mutex_unlock();

@@ -214,6 +214,7 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name) {
  *  - name: pointer to the name of current file/dir
  */
 void inode_print_tree(FILE *fp, int inumber, char *name) {
+    
     if (inode_table[inumber].nodeType == T_FILE) {
         fprintf(fp, "%s\n", name);
         return;

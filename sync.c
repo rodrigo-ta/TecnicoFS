@@ -2,7 +2,7 @@
 
 /* Initializes mutex lock or read-write lock */
 /* Does nothing if sync strategy is nosync. */
-void sync_init(int synchStrategy){
+void sync_init(){
     switch (synchStrategy){
 
         case MUTEX:
@@ -27,7 +27,7 @@ void sync_init(int synchStrategy){
 
 /* Locks rwlock or mutex in order to read critical areas of access */
 /* Does nothing if sync strategy is nosync. */
-void sync_read_lock(int synchStrategy){
+void sync_read_lock(){
     switch (synchStrategy){
 
         case MUTEX:   
@@ -53,7 +53,7 @@ void sync_read_lock(int synchStrategy){
 
 /* Locks rwlock or mutex in order to write in critical areas of acess. */
 /* Does nothing if sync strategy is nosync. */
-void sync_write_lock(int synchStrategy){
+void sync_write_lock(){
     switch (synchStrategy){
 
         case MUTEX:
@@ -78,7 +78,7 @@ void sync_write_lock(int synchStrategy){
 
 /* Unlocks rwlock or mutex */
 /* Does nothing if sync strategy is nosync. */
-void sync_unlock(int synchStrategy){
+void sync_unlock(){
     switch (synchStrategy){
 
         case MUTEX:
@@ -103,7 +103,7 @@ void sync_unlock(int synchStrategy){
 
 /* Destroys rwlock, mutex. */
 /* Does nothing if sync strategy is nosync. */
-void sync_destroy(int synchStrategy){
+void sync_destroy(){
     switch (synchStrategy){
         
         case MUTEX:

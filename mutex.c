@@ -19,7 +19,7 @@ void mutex_lock(pthread_mutex_t * mutex){
 /* Unlocks mutex */
 void mutex_unlock(pthread_mutex_t * mutex){
     if(pthread_mutex_unlock(mutex)){ // returns != 0 if not successful
-        fprintf(stderr, "Error: Couldn't unlock mutex.\n");
+        fprintf(stderr, "Error: Couldn't unlock mutex.(MUTEX.c)\n");
         exit(EXIT_FAILURE);
             }
 }

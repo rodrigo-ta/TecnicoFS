@@ -21,8 +21,6 @@
 
 int numberThreads = 0;
 
-int synchStrategy;
-
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
