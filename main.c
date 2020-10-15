@@ -338,7 +338,6 @@ int main(int argc, char* argv[]) {
     
     mutex_destroy(&mutex);
 
-
     /* release allocated memory */
     destroy_fs();
     exit(EXIT_SUCCESS);

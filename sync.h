@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 #define MUTEX 1
 #define RWLOCK 2
@@ -20,12 +21,9 @@ pthread_rwlock_t rwlock;
 
 void sync_init();
 void sync_read_lock();
+bool sync_try_lock();
 void sync_write_lock();
 void sync_unlock();
 void sync_destroy();
-void mutex_init();
-void mutex_lock();
-void mutex_unlock();
-void mutex_destroy();
 
 #endif

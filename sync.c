@@ -51,6 +51,29 @@ void sync_read_lock(){
     }
 }
 
+/*Checks if sync strategy is currently in use*/
+bool sync_try_lock(){
+    switch (synchStrategy)
+    {
+    case MUTEX:
+        if((pthread_mutex_trylock(&mutexlock)) == 0){
+            return true;
+        };
+        break;
+    
+    case RWLOCK:
+        if((pthread_rwlock_tryrdlock(&rwlock)) == 0){
+            return true;
+        };
+        break;
+
+    default:
+        break;
+    }
+
+    return false;
+}
+
 /* Locks rwlock or mutex in order to write in critical areas of acess. */
 /* Does nothing if sync strategy is nosync. */
 void sync_write_lock(){

@@ -43,6 +43,7 @@ void split_parent_child_from_path(char * path, char ** parent, char ** child) {
  * Initializes tecnicofs and creates root node.
  */
 void init_fs() {
+	sync_init();
 	inode_table_init();
 	
 	/* create root inode */
@@ -59,6 +60,7 @@ void init_fs() {
  * Destroy tecnicofs and inode table.
  */
 void destroy_fs() {
+	sync_destroy();
 	inode_table_destroy();
 }
 
@@ -116,7 +118,6 @@ int create(char *name, type nodeType){
 
 	int parent_inumber, child_inumber;
 	char *parent_name, *child_name, name_copy[MAX_FILE_NAME];
-	sync_init();
 	/* use for copy */
 	type pType;
 	union Data pdata;
@@ -169,7 +170,6 @@ int create(char *name, type nodeType){
 	}
 
 	sync_unlock();
-	sync_destroy();
 
 	return SUCCESS;
 }
@@ -185,7 +185,6 @@ int delete(char *name){
 
 	int parent_inumber, child_inumber;
 	char *parent_name, *child_name, name_copy[MAX_FILE_NAME];
-	sync_init();
 	/* use for copy */
 	type pType, cType;
 	union Data pdata, cdata;
@@ -247,7 +246,6 @@ int delete(char *name){
 	}
 	
 	sync_unlock();
-	sync_destroy();
 
 	return SUCCESS;
 }
@@ -264,6 +262,7 @@ int delete(char *name){
 int lookup(char *name) {
 	char full_path[MAX_FILE_NAME];
 	char delim[] = "/";
+	bool locked;
 
 	strcpy(full_path, name);
 
@@ -273,6 +272,10 @@ int lookup(char *name) {
 	/* use for copy */
 	type nType;
 	union Data data;
+
+	locked = sync_try_lock();
+	fputs(locked ? "TRUE\n" : "FALSE\n", stdout);
+	fflush(stdout);
 
 	/* get root inode data */
 	inode_get(current_inumber, &nType, &data);
@@ -285,6 +288,11 @@ int lookup(char *name) {
 		
 		inode_get(current_inumber, &nType, &data);
 		path = strtok(NULL, delim);
+	}
+
+	if (locked)
+	{
+		sync_unlock();
 	}
 
 	return current_inumber;
