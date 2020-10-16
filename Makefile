@@ -32,7 +32,7 @@ main.o: main.c sync.h mutex.h fs/operations.h fs/state.h tecnicofs-api-constants
 
 clean:
 	@echo Cleaning...
-	rm -f fs/*.o *.o *.txt tecnicofs
+	rm -f fs/*.o *.o tecnicofs
 
 run: tecnicofs
 	./tecnicofs

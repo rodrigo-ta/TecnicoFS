@@ -23,9 +23,7 @@
 
 #define INPUT 4
 #define OUTPUT 5
-
 #define TRUE 1
-#define FALSE 0
 
 int numberThreads = 0;
 
@@ -35,10 +33,10 @@ int headQueue = 0;
 
 pthread_mutex_t mutex;
 
-/* pointer to string of input file */
+/* pointer to string of input file given in app arguments*/
 char *p_inputFile = NULL;
 
-/* pointer to string of output file */
+/* pointer to string of output file given in app arguments */
 char *p_outputFile = NULL;
 
 /* write error message into stdin and exit program */
@@ -47,7 +45,7 @@ void exit_with_error(const char* err_msg){
     exit(EXIT_FAILURE);
 }
 
-int insertCommand(char* data) {
+int insert_command(char* data) {
     if(numberCommands != MAX_COMMANDS) {
         strcpy(inputCommands[numberCommands++], data);
         return 1;
@@ -55,7 +53,7 @@ int insertCommand(char* data) {
     return 0;
 }
 
-char* removeCommand() {
+char* remove_command() {
     if(numberCommands > 0){
         numberCommands--;
         return inputCommands[headQueue++];  
@@ -63,37 +61,43 @@ char* removeCommand() {
     return NULL;
 }
 
-void errorParse(){
+void error_parse(){
     fprintf(stderr, "Error: command invalid\n");
     exit(EXIT_FAILURE);
 }
 
-void displayUsage(char* appName){
+void display_usage(char* appName){
     fprintf(stderr, "Usage: %s inputfile outputfile numthreads synchstrategy\n", appName);
     exit(EXIT_FAILURE);
 }
 
-FILE * openFile(char type){
+FILE * open_file(char type){
     FILE * fp;
-    /* INPUT file */
+    /* open input file read */
     if(type == INPUT){
         fp = fopen(p_inputFile, "r");
         if(!fp)
             exit_with_error("Error: invalid input file\n");
     }
-    /* OUTPUT file */
-    else{
+
+    /* open output file to write */
+    else if(type == OUTPUT){
         fp = fopen(p_outputFile, "w");
         if(!fp)
             exit_with_error("Error: invalid output file\n");
     }
+
+    /* error */
+    else
+        exit(EXIT_FAILURE);
+
     return fp;
 }
 
-void processInput(){
+void process_input(){
     FILE *inputFile;
 
-    inputFile = openFile(INPUT);
+    inputFile = open_file(INPUT);
 
     char line[MAX_INPUT_SIZE];
 
@@ -111,22 +115,22 @@ void processInput(){
         switch (token) {
             case 'c':
                 if(numTokens != 3)
-                    errorParse();
-                if(insertCommand(line))
+                    error_parse();
+                if(insert_command(line))
                     break;
                 return;
             
             case 'l':
                 if(numTokens != 2)
-                    errorParse();
-                if(insertCommand(line))
+                    error_parse();
+                if(insert_command(line))
                     break;
                 return;
             
             case 'd':
                 if(numTokens != 2)
-                    errorParse();
-                if(insertCommand(line))
+                    error_parse();
+                if(insert_command(line))
                     break;
                 return;
             
@@ -134,7 +138,7 @@ void processInput(){
                 break;
             
             default: { /* error */
-                errorParse();
+                error_parse();
             }
         }
     }
@@ -142,7 +146,7 @@ void processInput(){
     fclose(inputFile);
 }
 
-void * applyCommands(){
+void * apply_commands(){
 
     while (TRUE){
 
@@ -152,7 +156,7 @@ void * applyCommands(){
         if (numberCommands != 0)
         {
 
-            const char* command = removeCommand();
+            const char* command = remove_command();
             if (command == NULL){
                 
                 mutex_unlock(&mutex);
@@ -238,7 +242,7 @@ void * applyCommands(){
 }
 
 /* Command line and argument passing */
-void parseArgs(int argc, char* argv[]){
+void parse_args(int argc, char* argv[]){
     char buffer[MAX_SYNC_CHAR];
     if(argc == 5){
         p_inputFile = argv[1];
@@ -268,14 +272,14 @@ void parseArgs(int argc, char* argv[]){
             exit_with_error("Error: Nosync strategy requires only 1 thread\n");
     }
     else
-        displayUsage(argv[0]);
+        display_usage(argv[0]);
 }
 
 /* create slave threads*/
 void create_threads(pthread_t * pthreads_id){
     int i;
     for (i = 0; i < numberThreads; i++){
-        if(pthread_create(&pthreads_id[i], NULL, &applyCommands, NULL)) // returns zero if successful
+        if(pthread_create(&pthreads_id[i], NULL, &apply_commands, NULL)) // returns zero if successful
             exit_with_error("Error creating thread.\n");
     }
 }
@@ -311,7 +315,7 @@ void run_threads(){
         join_threads(pthreads_id);
     }
     else
-        applyCommands();
+        apply_commands();
 
     /* stop counting time */
     gettimeofday(&end, 0);
@@ -325,25 +329,23 @@ void run_threads(){
 }
 
 int main(int argc, char* argv[]) {
-    FILE *outputFile;
 
     /* verify app arguments */
-    parseArgs(argc, argv);
+    parse_args(argc, argv);
 
     /* init filesystem */
     init_fs();
 
     /* process input and print tree */
-    processInput();
+    process_input();
 
     mutex_init(&mutex);
 
     run_threads();
 
-    outputFile = openFile(OUTPUT);
-
-    print_tecnicofs_tree(outputFile);
+    print_tecnicofs_tree(open_file(OUTPUT));
     
+    /* release mutex locks */
     mutex_destroy(&mutex);
 
     /* release allocated memory */

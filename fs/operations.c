@@ -40,32 +40,29 @@ void split_parent_child_from_path(char * path, char ** parent, char ** child) {
 
 
 /*
- * Initializes tecnicofs and creates root node.
+ * Initializes tecnicofs and locks for sync and creates root node.
  */
 void init_fs() {
-	sync_init();
 	inode_table_init();
+	sync_init();
 	
-	sync_write_lock();
 	/* create root inode */
 	int root = inode_create(T_DIRECTORY);
 	
 	if (root != FS_ROOT) {
-		sync_unlock();
 		sync_destroy();
 		printf("failed to create node for tecnicofs root\n");
 		exit(EXIT_FAILURE);
 	}
-	sync_unlock();
 }
 
 
 /*
- * Destroy tecnicofs and inode table.
+ * Destroy tecnicofs, inode table and locks of sync 
  */
 void destroy_fs() {
-	sync_destroy();
 	inode_table_destroy();
+	sync_destroy();
 }
 
 
@@ -279,7 +276,7 @@ int lookup(char *name) {
 	type nType;
 	union Data data;
 
-	new_lock= sync_try_lock();
+	new_lock = sync_try_lock();
 
 	/* get root inode data */
 	inode_get(current_inumber, &nType, &data);
@@ -310,4 +307,5 @@ int lookup(char *name) {
  */
 void print_tecnicofs_tree(FILE *fp){
 	inode_print_tree(fp, FS_ROOT, "");
+	fclose(fp);
 }
