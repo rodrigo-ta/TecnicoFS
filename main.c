@@ -12,8 +12,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "fs/operations.h"
-#include "sync.h"
-#include "mutex.h"
+#include "locks/mutex.h"
 #include <pthread.h>
 #include <sys/time.h>
 

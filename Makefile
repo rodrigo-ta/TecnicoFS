@@ -12,8 +12,8 @@ LDFLAGS=-lm
 
 all: tecnicofs
 
-tecnicofs: fs/state.o fs/operations.o sync.o mutex.o main.o
-	$(LD) $(CFLAGS) $(LDFLAGS) -o tecnicofs fs/state.o fs/operations.o sync.o mutex.o main.o -lpthread
+tecnicofs: fs/state.o fs/operations.o locks/sync.o locks/mutex.o main.o
+	$(LD) $(CFLAGS) $(LDFLAGS) -o tecnicofs fs/state.o fs/operations.o locks/sync.o locks/mutex.o main.o -lpthread
 
 fs/state.o: fs/state.c fs/state.h tecnicofs-api-constants.h
 	$(CC) $(CFLAGS) -o fs/state.o -c fs/state.c
@@ -21,18 +21,18 @@ fs/state.o: fs/state.c fs/state.h tecnicofs-api-constants.h
 fs/operations.o: fs/operations.c fs/operations.h fs/state.h tecnicofs-api-constants.h
 	$(CC) $(CFLAGS) -o fs/operations.o -c fs/operations.c
 
-sync.o: sync.c sync.h
+sync.o: locks/sync.c locks/sync.h
 	$(CC) $(CFLAGS) -o sync.o -c sync.c
 
-mutex.o: mutex.c mutex.h 
-	$(CC) $(CFLAGS) -o mutex.o -c mutex.c
+mutex.o: locks/mutex.c locks/mutex.h 
+	$(CC) $(CFLAGS) -o locks/mutex.o -c locks/mutex.c
 
-main.o: main.c sync.h mutex.h fs/operations.h fs/state.h tecnicofs-api-constants.h
+main.o: main.c locks/sync.h locks/mutex.h fs/operations.h fs/state.h tecnicofs-api-constants.h
 	$(CC) $(CFLAGS) -o main.o -c main.c
 
 clean:
 	@echo Cleaning...
-	rm -f fs/*.o *.o tecnicofs
+	rm -f fs/*.o locks/*.o *.o tecnicofs
 
 run: tecnicofs
 	./tecnicofs
