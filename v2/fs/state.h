@@ -17,7 +17,6 @@
 
 #define DELAY 5000
 
-
 /*
  * Contains the name of the entry and respective i-number
  */
@@ -40,8 +39,11 @@ union Data {
 typedef struct inode_t {    
 	type nodeType;
 	union Data data;
+	pthread_rwlock_t lock;
     /* more i-node attributes will be added in future exercises */
 } inode_t;
+
+inode_t inode_table[INODE_TABLE_SIZE];
 
 
 void insert_delay(int cycles);

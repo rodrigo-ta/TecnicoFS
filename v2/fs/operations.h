@@ -1,8 +1,7 @@
 #ifndef FS_H
 #define FS_H
 #include "state.h"
-#include "../locks/sync.h"
-
+#include "../locks/rwlock.h"
 
 void init_fs();
 void destroy_fs();

@@ -67,7 +67,7 @@ void error_parse(){
 }
 
 void display_usage(char* appName){
-    fprintf(stderr, "Usage: %s inputfile outputfile numthreads synchstrategy\n", appName);
+    fprintf(stderr, "Usage: %s inputfile outputfile numthreads\n", appName);
     exit(EXIT_FAILURE);
 }
 
@@ -243,7 +243,6 @@ void * apply_commands(){
 
 /* Command line and argument passing */
 void parse_args(int argc, char* argv[]){
-    char buffer[MAX_SYNC_CHAR];
     if(argc == 5){
         p_inputFile = argv[1];
         p_outputFile = argv[2];
@@ -251,25 +250,7 @@ void parse_args(int argc, char* argv[]){
 
         if(numberThreads == 0)
             exit_with_error("Error: invalid number of threads\n");
-        
-        strcpy(buffer, argv[4]);
-        
-        /* checks if synchstrategy is valid */
-        if(!strcmp(buffer, "mutex"))
-            synchStrategy = MUTEX;
 
-        else if(!strcmp(buffer, "rwlock"))
-            synchStrategy = RWLOCK;
-
-        else if(!strcmp(buffer, "nosync"))
-            synchStrategy = NOSYNC;
-
-        else
-            exit_with_error("Error: invalid sync strategy\n");
-
-        /* Nosync strategy requires only 1 thread */
-        if(synchStrategy == NOSYNC && numberThreads != 1)
-            exit_with_error("Error: Nosync strategy requires only 1 thread\n");
     }
     else
         display_usage(argv[0]);
@@ -304,25 +285,19 @@ void run_threads(){
     struct timeval begin, end;
     double duration;
 
-    if(synchStrategy != NOSYNC)
-        pthreads_id = (pthread_t*) malloc(sizeof(pthread_t) * numberThreads);
+    pthreads_id = (pthread_t*) malloc(sizeof(pthread_t) * numberThreads);
 
     /* start counting time */
     gettimeofday(&begin, 0);
 
-    if(synchStrategy != NOSYNC){
-        create_threads(pthreads_id);
-        join_threads(pthreads_id);
-    }
-    else
-        apply_commands();
+    create_threads(pthreads_id);
+    join_threads(pthreads_id);
 
     /* stop counting time */
     gettimeofday(&end, 0);
     duration = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec) * 1e-6;
 
-    if(synchStrategy != NOSYNC)
-        free_threads(pthreads_id);
+    free_threads(pthreads_id);
 
     /* print threads execution time */
     fprintf(stdout, "TecnicoFS completed in %0.4f seconds.\n", duration);

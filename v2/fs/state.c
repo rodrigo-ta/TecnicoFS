@@ -5,8 +5,6 @@
 #include "state.h"
 #include "../tecnicofs-api-constants.h"
 
-inode_t inode_table[INODE_TABLE_SIZE];
-
 
 /*
  * Sleeps for synchronization testing.
