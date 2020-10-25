@@ -132,24 +132,30 @@ int create(char *name, type nodeType){
 
 	if (parent_inumber == FAIL) {
 		printf("failed to create %s, invalid parent dir %s\n", name, parent_name);
-		unlock_all(locks);
-		free_locks_list(locks);
+		for(int i = 0; i < locks->num; i++){
+        	printf("(134) unlocking %p\n", locks->rwlocks[i]);
+			rwlock_unlock(locks->rwlocks[i]);
+    	}
 		return FAIL;
 	}
 
 
 	if(pType != T_DIRECTORY) {
 		printf("failed to create %s, parent %s is not a dir\n", name, parent_name);
-		unlock_all(locks);
-		free_locks_list(locks);
+		for(int i = 0; i < locks->num; i++){
+        	printf("(144) unlocking %p\n", locks->rwlocks[i]);
+			rwlock_unlock(locks->rwlocks[i]);
+    	}
 		return FAIL;
 	}
 
 	if (lookup_sub_node(child_name, pdata.dirEntries) != FAIL) {
 		printf("failed to create %s, already exists in dir %s\n",
 		       child_name, parent_name);
-		unlock_all(locks);
-		free_locks_list(locks);
+		for(int i = 0; i < locks->num; i++){
+        	printf("(154) unlocking %p\n", locks->rwlocks[i]);
+			rwlock_unlock(locks->rwlocks[i]);
+    	}
 		return FAIL;
 	}
 
@@ -158,25 +164,31 @@ int create(char *name, type nodeType){
 	
 	list_add_lock(locks, get_inode_lock(child_inumber));
 	rwlock_write_lock(locks->rwlocks[locks->num - 1]);
+	printf("(165) locked %p\n", locks->rwlocks[locks->num-1]);
 
 	if (child_inumber == FAIL) {
-		printf("failed to create %s in  %s, couldn't allocate inode\n",
-		        child_name, parent_name);
-		unlock_all(locks);
-		free_locks_list(locks);
+		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
+		for(int i = 0; i < locks->num; i++){
+       		printf("(170) unlocking %p\n", locks->rwlocks[i]);
+			rwlock_unlock(locks->rwlocks[i]);
+    }
 		return FAIL;
 	}
 
 	if (dir_add_entry(parent_inumber, child_inumber, child_name) == FAIL) {
-		printf("could not add entry %s in dir %s\n",
-		       child_name, parent_name);
-		unlock_all(locks);
-		free_locks_list(locks);
+		printf("could not add entry %s in dir %s\n", child_name, parent_name);
+		for(int i = 0; i < locks->num; i++){
+        	printf("(179) unlocking %p\n", locks->rwlocks[i]);
+			rwlock_unlock(locks->rwlocks[i]);
+    }
 		return FAIL;
 	}
 
-	unlock_all(locks);
-	free_locks_list(locks);
+	for(int i = 0; i < locks->num; i++){
+        printf("(186) unlocking %p\n", locks->rwlocks[i]);
+		rwlock_unlock(locks->rwlocks[i]);
+    }
+
 	return SUCCESS;
 }
 
@@ -206,7 +218,6 @@ int delete(char *name){
 	if (parent_inumber == FAIL) {
 		printf("failed to delete %s, invalid parent dir %s\n", child_name, parent_name);
 		unlock_all(locks);
-		free_locks_list(locks);
 		return FAIL;
 	}
 
@@ -216,7 +227,6 @@ int delete(char *name){
 	if(pType != T_DIRECTORY) {
 		printf("failed to delete %s, parent %s is not a dir\n", child_name, parent_name);
 		unlock_all(locks);
-		free_locks_list(locks);
 		return FAIL;
 	}
 
@@ -228,7 +238,6 @@ int delete(char *name){
 	if (child_inumber == FAIL) {
 		printf("could not delete %s, does not exist in dir %s\n", name, parent_name);
 		unlock_all(locks);
-		free_locks_list(locks);
 		return FAIL;
 	}
 
@@ -237,7 +246,6 @@ int delete(char *name){
 	if (cType == T_DIRECTORY && is_dir_empty(cdata.dirEntries) == FAIL) {
 		printf("could not delete %s: is a directory and not empty\n", name);
 		unlock_all(locks);
-		free_locks_list(locks);
 		return FAIL;
 	}
 
@@ -245,30 +253,30 @@ int delete(char *name){
 	if (dir_reset_entry(parent_inumber, child_inumber) == FAIL) {
 		printf("failed to delete %s from dir %s\n", child_name, parent_name);
 		unlock_all(locks);
-		free_locks_list(locks);
 		return FAIL;
 	}
 
 	if (inode_delete(child_inumber) == FAIL) {
 		printf("could not delete inode number %d from dir %s\n", child_inumber, parent_name);
 		unlock_all(locks);
-		free_locks_list(locks);
 		return FAIL;
 	}
 	
 	unlock_all(locks);
-	free_locks_list(locks);
 	return SUCCESS;
 }
 
 
 int startlookup(char *name){
 	int current_inumber;
+
 	Locks * locks = create_locks_list(INODE_TABLE_SIZE);
 	current_inumber = lookup(name, locks, READ);
+	for(int i = 0; i < locks->num; i++){
+        printf("(274) unlocking %p\n", locks->rwlocks[i]);
+		rwlock_unlock(locks->rwlocks[i]);
+    }
 
-	unlock_all(locks);
-	free_locks_list(locks);
 
 	return current_inumber;
 
@@ -292,6 +300,8 @@ int lookup(char *name, Locks * locks, int mode) {
 
 	strcpy(full_path, name);
 
+	printf("parent name: %s\n", name);
+
 	/* start at root node */
 	int current_inumber = FS_ROOT;
 
@@ -304,14 +314,25 @@ int lookup(char *name, Locks * locks, int mode) {
 
 	list_add_lock(locks, get_inode_lock(current_inumber));
 
+
 	char *path = strtok(full_path, delim);
 
+
+	printf("PATH = %s\n", path);
 	/* no sub nodes available */
-	if(path == NULL){
-		if(mode == WRITE)
+	if(path == NULL || (current_inumber = lookup_sub_node(path, data.dirEntries)) == FAIL){
+		if(mode == WRITE){
+			printf("(WRITE): ");
+			printf("trying to lock address: %p\n", locks->rwlocks[locks->num - 1]);
 			rwlock_write_lock(locks->rwlocks[locks->num - 1]);
-		else
+			printf("(322) locked %p\n", locks->rwlocks[locks->num-1]);
+		}
+		else{
+			printf("(READ): ");
+			printf("trying to lock address: %p\n", locks->rwlocks[locks->num - 1]);
 			rwlock_read_lock(locks->rwlocks[locks->num - 1]);
+			printf("(328) locked %p\n", locks->rwlocks[locks->num-1]);
+		}
 		return current_inumber;
 		}
 
@@ -320,17 +341,26 @@ int lookup(char *name, Locks * locks, int mode) {
 		inode_get(current_inumber, &nType, &data);
 		list_add_lock(locks, get_inode_lock(current_inumber));
 		path = strtok(NULL, delim);
-
 		/* locks rwlock depending on mode type, if current path is the last one */
-		if(path == NULL){
-			if(mode == WRITE)
+		if(path == NULL || (current_inumber = lookup_sub_node(path, data.dirEntries)) == FAIL){
+			if(mode == WRITE){
+				printf("(WRITE): ");
+				printf("trying to lock address: %p\n", locks->rwlocks[locks->num - 1]);
 				rwlock_write_lock(locks->rwlocks[locks->num - 1]);
-			else
+				printf("(345) locked %p\n", locks->rwlocks[locks->num-1]);
+			}
+			else{
+				printf("(READ): ");
+				printf("trying to lock address: %p\n", locks->rwlocks[locks->num - 1]);
 				rwlock_read_lock(locks->rwlocks[locks->num - 1]);
+				printf("(351) locked %p\n", locks->rwlocks[locks->num-1]);
+			}
 			break;
 		}
 		rwlock_read_lock(locks->rwlocks[locks->num - 1]);
+		printf("(356) locked %p\n", locks->rwlocks[locks->num-1]);
 	}
+
 	return current_inumber;
 }
 
