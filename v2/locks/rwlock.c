@@ -4,6 +4,37 @@
 
 #include "rwlock.h"
 
+Locks * create_locks_list(int size){
+	Locks * locks = (Locks*) malloc(sizeof(Locks));
+    if(!locks){
+        fprintf(stderr, "Error: couldn't allocate memory for locks list.\n");
+        exit(EXIT_FAILURE);
+    }
+	locks->rwlocks = (pthread_rwlock_t**) malloc(size * sizeof(pthread_rwlock_t*));
+    if(!(locks->rwlocks)){
+        fprintf(stderr, "Error: couldn't allocate memory for locks array of pointers.\n");
+        exit(EXIT_FAILURE);
+    }
+	locks->num = 0;
+	return locks;
+}
+
+/* Add address of rwlock to list of locks and increments number of locks */
+void list_add_lock(Locks * locks, pthread_rwlock_t * p_rwlock){
+    locks->rwlocks[locks->num] = p_rwlock;
+    locks->num++;
+}
+
+void unlock_all(Locks * locks){
+    for(int i = 0; i < locks->num; i++)
+		rwlock_unlock(locks->rwlocks[i]);
+}
+
+void free_locks_list(Locks * locks){
+    free(locks);
+}
+
+
 /* Initializes mutex lock or read-write lock */
 void rwlock_init(pthread_rwlock_t* rwlock){
     if(pthread_rwlock_init(rwlock, NULL)){ // returns != 0 if not successful

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../tecnicofs-api-constants.h"
+#include "../locks/rwlock.h"
 
 /* FS root inode number */
 #define FS_ROOT 0
@@ -46,16 +47,18 @@ typedef struct inode_t {
 inode_t inode_table[INODE_TABLE_SIZE];
 
 
-void insert_delay(int cycles);
+pthread_rwlock_t * get_inode_lock(int);
+
+void insert_delay(int);
 void inode_table_init();
 void inode_table_destroy();
-int inode_create(type nType);
-int inode_delete(int inumber);
-int inode_get(int inumber, type *nType, union Data *data);
-int inode_set_file(int inumber, char *fileContents, int len);
-int dir_reset_entry(int inumber, int sub_inumber);
-int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
-void inode_print_tree(FILE *fp, int inumber, char *name);
+int inode_create(type);
+int inode_delete(int);
+int inode_get(int, type*, union Data*);
+int inode_set_file(int, char*, int);
+int dir_reset_entry(int, int);
+int dir_add_entry(int, int, char*);
+void inode_print_tree(FILE*, int, char*);
 
 
 #endif /* INODES_H */

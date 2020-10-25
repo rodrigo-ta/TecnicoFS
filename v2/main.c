@@ -205,7 +205,7 @@ void * apply_commands(){
 
                     mutex_unlock(&mutex);
 
-                    searchResult = lookup(name);
+                    searchResult = startlookup(name);
                     if (searchResult >= 0)
                     {
                         printf("Search: %s found\n", name);
@@ -243,7 +243,7 @@ void * apply_commands(){
 
 /* Command line and argument passing */
 void parse_args(int argc, char* argv[]){
-    if(argc == 5){
+    if(argc == 4){
         p_inputFile = argv[1];
         p_outputFile = argv[2];
         numberThreads = atoi(argv[3]);

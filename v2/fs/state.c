@@ -5,11 +5,15 @@
 #include "state.h"
 #include "../tecnicofs-api-constants.h"
 
+/* return address of current inode rwlock */
+pthread_rwlock_t * get_inode_lock(int inumber){
+    return &inode_table[inumber].lock;
+}
 
 /*
  * Sleeps for synchronization testing.
  */
-void insert_delay(int cycles) {
+void insert_delay(int cycles){
     for (int i = 0; i < cycles; i++) {}
 }
 
@@ -22,6 +26,7 @@ void inode_table_init() {
         inode_table[i].nodeType = T_NONE;
         inode_table[i].data.dirEntries = NULL;
         inode_table[i].data.fileContents = NULL;
+        rwlock_init(&inode_table[i].lock);
     }
 }
 
@@ -34,9 +39,10 @@ void inode_table_destroy() {
         if (inode_table[i].nodeType != T_NONE) {
             /* as data is an union, the same pointer is used for both dirEntries and fileContents */
             /* just release one of them */
-	  if (inode_table[i].data.dirEntries)
-            free(inode_table[i].data.dirEntries);
+	        if (inode_table[i].data.dirEntries)
+                free(inode_table[i].data.dirEntries);
         }
+        rwlock_destroy(&inode_table[i].lock);
     }
 }
 
@@ -105,13 +111,15 @@ int inode_delete(int inumber) {
  * Returns: SUCCESS or FAIL
  */
 int inode_get(int inumber, type *nType, union Data *data) {
-    /* Used for testing synchronization speedup */
-    insert_delay(DELAY);
 
+     /* Used for testing synchronization speedup */
+    insert_delay(DELAY);
+    
     if ((inumber < 0) || (inumber > INODE_TABLE_SIZE) || (inode_table[inumber].nodeType == T_NONE)) {
         printf("inode_get: invalid inumber %d\n", inumber);
         return FAIL;
     }
+
 
     if (nType)
         *nType = inode_table[inumber].nodeType;
