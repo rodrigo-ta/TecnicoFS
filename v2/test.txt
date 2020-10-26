@@ -1,9 +1,0 @@
-# 8 creates, 2 lookups, 1 delete
-c a d
-c b d
-c c d
-c d d
-c a/a1 d
-c b/b1 d
-c a/a1/a2 f
-c b/b1/b2 f

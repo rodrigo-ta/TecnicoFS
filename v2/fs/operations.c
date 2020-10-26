@@ -325,11 +325,10 @@ int lookup(char *name, Locks * locks, int mode) {
 	/* search for all sub nodes */
 	while (1) {
 		current_lock = get_inode_lock(current_inumber);
-		rwlock_read_lock(current_lock);
 
+		rwlock_read_lock(current_lock);
 		inode_get(current_inumber, &nType, &data);
 		current_inumber = lookup_sub_node(path, data.dirEntries);
-
 		rwlock_unlock(current_lock);
 
 		if(current_inumber == FAIL)
