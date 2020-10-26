@@ -4,7 +4,8 @@
 
 #include "rwlock.h"
 
-Locks * create_locks_list(int size){
+/* Creates a list with an array of rwlocks and number of rwlocks */
+Locks * list_create(int size){
 	Locks * locks = (Locks*) malloc(sizeof(Locks));
     if(!locks){
         fprintf(stderr, "Error: couldn't allocate memory for locks list.\n");
@@ -25,14 +26,26 @@ void list_add_lock(Locks * locks, pthread_rwlock_t * p_rwlock){
     locks->num++;
 }
 
-void unlock_all(Locks * locks){
+/* Unlock every rwlock in locks list */
+void list_unlock_all(Locks * locks){
     for(int i = 0; i < locks->num; i++)
 		rwlock_unlock(locks->rwlocks[i]);
 }
 
-void free_locks_list(Locks * locks){
+/* Free memory associated to rwlocks array and list */
+void list_free(Locks * locks){
     free(locks->rwlocks);
     free(locks);
+}
+
+/* Locks (write) last rwlock of array */
+void list_write_lock(Locks * locks){
+    rwlock_write_lock(locks->rwlocks[locks->num - 1]);
+}
+
+/* Locks (read) last rwlock of array */
+void list_read_lock(Locks * locks){
+    rwlock_read_lock(locks->rwlocks[locks->num - 1]);
 }
 
 

@@ -2,8 +2,11 @@
 c a f
 c b f
 c c f
-c d d
-c a/e f
-c b/f f
-c c/g f
-c d/h f
+c d f
+c e f
+c f f
+c g f
+c h f
+l c
+d c
+l c
