@@ -301,6 +301,7 @@ int lookup(char *name, Locks * locks, int mode) {
 	char full_path[MAX_FILE_NAME];
 	char delim[] = "/";
 	strcpy(full_path, name);
+	pthread_rwlock_t * current_lock;
 	int current_inumber = FS_ROOT;
 
 	/* use for copy */
@@ -309,7 +310,7 @@ int lookup(char *name, Locks * locks, int mode) {
 
 	char *path = strtok(full_path, delim);
 
-	//printf("name = %s | path = %s\n", name, path);
+
 
 	/* locks rwlock of root inode if accessing file/directory directly in fs root */
 	if(path == NULL){
@@ -321,20 +322,23 @@ int lookup(char *name, Locks * locks, int mode) {
 		return current_inumber;
 	}
 
-	/* get root inode data */
-	inode_get(current_inumber, &nType, &data);
-
-	/* no sub nodes available */
-	if((current_inumber = lookup_sub_node(path, data.dirEntries)) == FAIL){
-		return current_inumber;
-	}
-
 	/* search for all sub nodes */
 	while (1) {
-		list_add_lock(locks, get_inode_lock(current_inumber));
+		current_lock = get_inode_lock(current_inumber);
+		rwlock_read_lock(current_lock);
+
 		inode_get(current_inumber, &nType, &data);
+		current_inumber = lookup_sub_node(path, data.dirEntries);
+
+		rwlock_unlock(current_lock);
+
+		if(current_inumber == FAIL)
+			break;
+			
+		list_add_lock(locks, get_inode_lock(current_inumber));
 		path = strtok(NULL, delim);
-		/* locks rwlock depending on mode type, if current path is the last one */
+
+		/* locks rwlock depending on mode type, if current path is the last one / next path is null */
 		if(path == NULL){
 			if(mode == WRITE)
 				list_write_lock(locks);
@@ -342,8 +346,6 @@ int lookup(char *name, Locks * locks, int mode) {
 				list_read_lock(locks);
 			break;
 		}
-		if((current_inumber = lookup_sub_node(path, data.dirEntries)) == FAIL)
-			break;
 		list_read_lock(locks);
 	}
 

@@ -62,11 +62,8 @@ int generate_new_inumber(){
     insert_delay(DELAY);
     //mutex_lock(&mutex);
     for(int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++)
-        if(inode_table[inumber].nodeType == T_NONE){
-            //mutex_unlock(&mutex);
+        if(inode_table[inumber].nodeType == T_NONE)
             return inumber;
-        }
-    //mutex_unlock(&mutex);
     return FAIL;
 }
 
