@@ -47,7 +47,8 @@ void init_fs() {
 	inode_table_init();
 	
 	/* create root inode */
-	int root = inode_create(T_DIRECTORY);
+	int root = generate_new_inumber();
+	inode_create(T_DIRECTORY, root);
 	
 	if (root != FS_ROOT) {
 		printf("failed to create node for tecnicofs root\n");
@@ -126,9 +127,8 @@ int create(char *name, type nodeType){
 	strcpy(name_copy, name);
 
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
-
-
 	parent_inumber = lookup(parent_name, locks, WRITE);
+
 
 	inode_get(parent_inumber, &pType, &pdata);
 
@@ -156,10 +156,12 @@ int create(char *name, type nodeType){
 	}
 
 	/* create node and add entry to folder that contains new node */
-	child_inumber = inode_create(nodeType);
-	
+	child_inumber = generate_new_inumber();
+
 	list_add_lock(locks, get_inode_lock(child_inumber));
 	rwlock_write_lock(locks->rwlocks[locks->num - 1]);
+
+	inode_create(nodeType, child_inumber);
 
 	if (child_inumber == FAIL) {
 		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
@@ -300,40 +302,41 @@ int lookup(char *name, Locks * locks, int mode) {
 	type nType;
 	union Data data;
 
+	char *path = strtok(full_path, delim);
+
+	/* no sub nodes available */
+	if(path == NULL){
+		list_add_lock(locks, get_inode_lock(current_inumber));
+		if(mode == WRITE)
+			rwlock_write_lock(locks->rwlocks[locks->num - 1]);
+		else if(mode == READ)
+			rwlock_read_lock(locks->rwlocks[locks->num - 1]);
+		return current_inumber;
+	}
+
 	/* get root inode data */
 	inode_get(current_inumber, &nType, &data);
 
-	list_add_lock(locks, get_inode_lock(current_inumber));
-
-
-	char *path = strtok(full_path, delim);
-
-
 	/* no sub nodes available */
-	if(path == NULL || (current_inumber = lookup_sub_node(path, data.dirEntries)) == FAIL){
-		if(mode == WRITE){
-			printf("Trying to lock: %p\n", locks->rwlocks[locks->num -1]);
-			rwlock_write_lock(locks->rwlocks[locks->num - 1]);
-			printf("Success!\n");
-		}
-		else
-			rwlock_read_lock(locks->rwlocks[locks->num - 1]);
+	if((current_inumber = lookup_sub_node(path, data.dirEntries)) == FAIL){
 		return current_inumber;
 	}
 
 	/* search for all sub nodes */
 	while (1) {
-		inode_get(current_inumber, &nType, &data);
 		list_add_lock(locks, get_inode_lock(current_inumber));
+		inode_get(current_inumber, &nType, &data);
 		path = strtok(NULL, delim);
 		/* locks rwlock depending on mode type, if current path is the last one */
-		if(path == NULL || (current_inumber = lookup_sub_node(path, data.dirEntries)) == FAIL){
+		if(path == NULL){
 			if(mode == WRITE)
 				rwlock_write_lock(locks->rwlocks[locks->num - 1]);
-			else
+			else if(mode == READ)
 				rwlock_read_lock(locks->rwlocks[locks->num - 1]);
 			break;
 		}
+		if((current_inumber = lookup_sub_node(path, data.dirEntries)) == FAIL)
+			break;
 		rwlock_read_lock(locks->rwlocks[locks->num - 1]);
 	}
 

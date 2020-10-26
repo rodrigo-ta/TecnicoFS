@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "../tecnicofs-api-constants.h"
 #include "../locks/rwlock.h"
+#include "../locks/mutex.h"
 
 /* FS root inode number */
 #define FS_ROOT 0
@@ -44,6 +45,8 @@ typedef struct inode_t {
     /* more i-node attributes will be added in future exercises */
 } inode_t;
 
+pthread_mutex_t mutex;
+
 inode_t inode_table[INODE_TABLE_SIZE];
 
 
@@ -52,7 +55,8 @@ pthread_rwlock_t * get_inode_lock(int);
 void insert_delay(int);
 void inode_table_init();
 void inode_table_destroy();
-int inode_create(type);
+int generate_new_inumber();
+int inode_create(type, int);
 int inode_delete(int);
 int inode_get(int, type*, union Data*);
 int inode_set_file(int, char*, int);
