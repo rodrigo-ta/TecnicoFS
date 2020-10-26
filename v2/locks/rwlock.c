@@ -31,6 +31,7 @@ void unlock_all(Locks * locks){
 }
 
 void free_locks_list(Locks * locks){
+    free(locks->rwlocks);
     free(locks);
 }
 
