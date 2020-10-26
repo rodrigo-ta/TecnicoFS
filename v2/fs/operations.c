@@ -298,7 +298,7 @@ int startlookup(char *name){
  * 
  */
 int lookup(char *name, Locks * locks, int mode) {
-	char full_path[MAX_FILE_NAME];
+	char full_path[MAX_FILE_NAME], *saveptr;
 	char delim[] = "/";
 	strcpy(full_path, name);
 	pthread_rwlock_t * current_lock;
@@ -308,9 +308,7 @@ int lookup(char *name, Locks * locks, int mode) {
 	type nType;
 	union Data data;
 
-	char *path = strtok(full_path, delim);
-
-
+	char *path = strtok_r(full_path, delim, &saveptr);
 
 	/* locks rwlock of root inode if accessing file/directory directly in fs root */
 	if(path == NULL){
@@ -335,7 +333,7 @@ int lookup(char *name, Locks * locks, int mode) {
 			break;
 			
 		list_add_lock(locks, get_inode_lock(current_inumber));
-		path = strtok(NULL, delim);
+		path = strtok_r(NULL, delim, &saveptr);
 
 		/* locks rwlock depending on mode type, if current path is the last one / next path is null */
 		if(path == NULL){

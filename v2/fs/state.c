@@ -28,7 +28,6 @@ void inode_table_init() {
         inode_table[i].data.fileContents = NULL;
         rwlock_init(&inode_table[i].lock);
     }
-    //mutex_init(&mutex);
 }
 
 /*
@@ -45,7 +44,6 @@ void inode_table_destroy() {
         }
         rwlock_destroy(&inode_table[i].lock);
     }
-    //mutex_destroy(&mutex);
 }
 
 /*
@@ -60,7 +58,6 @@ void inode_table_destroy() {
 int generate_new_inumber(){
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
-    //mutex_lock(&mutex);
     for(int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++)
         if(inode_table[inumber].nodeType == T_NONE)
             return inumber;
