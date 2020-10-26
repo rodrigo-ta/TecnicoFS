@@ -105,6 +105,41 @@ int lookup_sub_node(char *name, DirEntry *entries) {
 	return FAIL;
 }
 
+int get_parent(char * name, char * parent_name, Locks * locks, char * cmd, type * pType, union Data *pdata){
+	int parent_inumber = lookup(parent_name, locks, WRITE);
+
+	if (parent_inumber == FAIL) {
+		printf("failed to %s %s, invalid parent dir %s\n", cmd, name, parent_name);
+		list_unlock_all(locks);
+		list_free(locks);
+		return FAIL;
+	}
+
+	inode_get(parent_inumber, pType, pdata);
+
+	if(*pType != T_DIRECTORY) {
+		printf("failed to %s %s, parent %s is not a dir\n", cmd, name, parent_name);
+		list_unlock_all(locks);
+		list_free(locks);
+		return FAIL;
+	}
+	return parent_inumber;
+}
+
+int get_child(char * name, char * parent_name, char * child_name, Locks * locks, char * cmd, union Data pdata){
+	int child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
+	if(child_inumber == FAIL){
+		printf("could not %s %s, does not exist in dir %s\n", cmd, name, parent_name);
+		list_unlock_all(locks);
+		list_free(locks);
+		return child_inumber;
+	}
+	list_add_lock(locks, get_inode_lock(child_inumber));
+	list_write_lock(locks);
+
+	return child_inumber;
+}
+
 
 /*
  * Creates a new node given a path.
@@ -117,50 +152,25 @@ int create(char *name, type nodeType){
 	int parent_inumber, child_inumber;
 	char *parent_name, *child_name, name_copy[MAX_FILE_NAME];
 
-
 	/* use for copy */
 	type pType;
 	union Data pdata;
 	Locks * locks = list_create(INODE_TABLE_SIZE);
 
 	strcpy(name_copy, name);
-
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
-	parent_inumber = lookup(parent_name, locks, WRITE);
 
-
-	inode_get(parent_inumber, &pType, &pdata);
-
-	if (parent_inumber == FAIL) {
-		printf("failed to create %s, invalid parent dir %s\n", name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
+	if((parent_inumber = get_parent(name, parent_name, locks, "create", &pType, &pdata)) == FAIL)
 		return FAIL;
-	}
-
-
-	if(pType != T_DIRECTORY) {
-		printf("failed to create %s, parent %s is not a dir\n", name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
-		return FAIL;
-	}
-
+	
 	if (lookup_sub_node(child_name, pdata.dirEntries) != FAIL) {
-		printf("failed to create %s, already exists in dir %s\n",
-		       child_name, parent_name);
+		printf("failed to create %s, already exists in dir %s\n", child_name, parent_name);
 		list_unlock_all(locks);
 		list_free(locks);
 		return FAIL;
 	}
-
 	/* create node and add entry to folder that contains new node */
 	child_inumber = generate_new_inumber();
-
-	list_add_lock(locks, get_inode_lock(child_inumber));
-	list_write_lock(locks);
-
-	inode_create(nodeType, child_inumber);
 
 	if (child_inumber == FAIL) {
 		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
@@ -168,6 +178,10 @@ int create(char *name, type nodeType){
 		list_free(locks);
 		return FAIL;
 	}
+
+	list_add_lock(locks, get_inode_lock(child_inumber));
+	list_write_lock(locks);
+	inode_create(nodeType, child_inumber);
 
 	if (dir_add_entry(parent_inumber, child_inumber, child_name) == FAIL) {
 		printf("could not add entry %s in dir %s\n", child_name, parent_name);
@@ -183,6 +197,36 @@ int create(char *name, type nodeType){
 }
 
 int move(char * name_src, char * name_destn){
+	
+	int p_inumber_src, c_inumber_src, p_inumber_destn;
+	//int c_inumber_destn;
+	char *p_name_src, *c_name_src, *p_name_destn, *c_name_destn;
+	char name_src_copy[MAX_FILE_NAME], name_destn_copy[MAX_FILE_NAME];
+
+	type p_src_type, p_destn_type;
+	//type c_src_type, c_destn_type;
+	union Data p_src_data, p_destn_data;
+	//union Data c_src_data, c_destn_data;
+
+	Locks * locks = list_create(INODE_TABLE_SIZE);
+
+	
+	strcpy(name_src_copy, name_src);
+	split_parent_child_from_path(name_src_copy, &p_name_src, &c_name_src);
+	if((p_inumber_src = get_parent(name_src, p_name_src, locks, "move", &p_src_type, &p_src_data)) == FAIL)
+		return FAIL;
+	if((c_inumber_src = get_child(name_src, p_name_src, c_name_src, locks, "move", p_src_data)) == FAIL)
+		return FAIL;
+
+	
+	strcpy(name_destn_copy, name_destn);
+	split_parent_child_from_path(name_destn_copy, &p_name_destn, &c_name_destn);
+	if((p_inumber_destn = get_parent(name_destn, p_name_destn, locks, "move", &p_destn_type, &p_destn_data)) == FAIL)
+		return FAIL;
+	
+	//c_inumber_destn = lookup_sub_node(c_name_destn, p_destn_data.dirEntries);
+
+
 	return SUCCESS;
 }
 
@@ -200,41 +244,17 @@ int delete(char *name){
 	/* use for copy */
 	type pType, cType;
 	union Data pdata, cdata;
+
 	Locks * locks = list_create(INODE_TABLE_SIZE);
 
 	strcpy(name_copy, name);
-
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-
-	parent_inumber = lookup(parent_name, locks, WRITE);
-
-	if (parent_inumber == FAIL) {
-		printf("failed to delete %s, invalid parent dir %s\n", child_name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
+	if((parent_inumber = get_parent(name, parent_name, locks, "delete", &pType, &pdata)) == FAIL)
 		return FAIL;
-	}
 
-	inode_get(parent_inumber, &pType, &pdata);
-
-	if(pType != T_DIRECTORY) {
-		printf("failed to delete %s, parent %s is not a dir\n", child_name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
+	if((child_inumber = get_child(name, parent_name, child_name, locks, "delete", pdata)) == FAIL)
 		return FAIL;
-	}
-
-	child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
-	list_add_lock(locks, get_inode_lock(child_inumber));
-	list_write_lock(locks);
-
-	if (child_inumber == FAIL) {
-		printf("could not delete %s, does not exist in dir %s\n", name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
-		return FAIL;
-	}
 
 	inode_get(child_inumber, &cType, &cdata);
 
@@ -304,7 +324,6 @@ int lookup(char *name, Locks * locks, int mode) {
 	char full_path[MAX_FILE_NAME], *saveptr;
 	char delim[] = "/";
 	strcpy(full_path, name);
-	pthread_rwlock_t * current_lock;
 	int current_inumber = FS_ROOT;
 
 	/* use for copy */
@@ -324,19 +343,12 @@ int lookup(char *name, Locks * locks, int mode) {
 	}
 
 	/* search for all sub nodes */
-	while (1) {
-		current_lock = get_inode_lock(current_inumber);
-
-		rwlock_read_lock(current_lock);
-		inode_get(current_inumber, &nType, &data);
-		current_inumber = lookup_sub_node(path, data.dirEntries);
-		rwlock_unlock(current_lock);
-
-		if(current_inumber == FAIL)
-			break;
-			
-		list_add_lock(locks, get_inode_lock(current_inumber));
+	while (current_inumber != FAIL) {
+		
+		/* next path */
 		path = strtok_r(NULL, delim, &saveptr);
+
+		list_add_lock(locks, get_inode_lock(current_inumber));
 
 		/* locks rwlock depending on mode type, if current path is the last one / next path is null */
 		if(path == NULL){
@@ -347,6 +359,8 @@ int lookup(char *name, Locks * locks, int mode) {
 			break;
 		}
 		list_read_lock(locks);
+		inode_get(current_inumber, &nType, &data);
+		current_inumber = lookup_sub_node(path, data.dirEntries);
 	}
 
 	return current_inumber;

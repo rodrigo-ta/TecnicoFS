@@ -9,6 +9,8 @@
 
 void init_fs();
 void destroy_fs();
+int get_parent(char*, char*, Locks*, char*, type*, union Data*);
+int get_child(char*, char*, char*, Locks*, char *, union Data);
 int is_dir_empty(DirEntry*);
 int create(char*, type);
 int move(char*, char*);
