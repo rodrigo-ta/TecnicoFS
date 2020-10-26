@@ -134,6 +134,13 @@ void process_input(){
                     break;
                 return;
             
+            case 'm':
+                if(numTokens != 3)
+                    error_parse();
+                if(insert_command(line))
+                    break;
+                return;
+
             case '#':
                 break;
             
@@ -165,8 +172,8 @@ void * apply_commands(){
             }
 
             char token, type;
-            char name[MAX_INPUT_SIZE];
-            int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
+            char name[MAX_INPUT_SIZE], name_src[MAX_INPUT_SIZE], name_destn[MAX_INPUT_SIZE];
+            int numTokens = sscanf(command, "%c %s", &token, name);
             if (numTokens < 2) {
                 fprintf(stderr, "Error: invalid command in Queue\n");
 
@@ -178,6 +185,7 @@ void * apply_commands(){
             int searchResult;
             switch (token) {
                 case 'c':
+                    sscanf(command, "%c %s %c", &token, name, &type);
                     switch (type) {
                         case 'f':
                             printf("Create file: %s\n", name);
@@ -222,6 +230,15 @@ void * apply_commands(){
 
                     delete(name);
                     break;
+                case 'm':
+
+                    sscanf(command, "%c %s %s", &token, name_src, name_destn);
+                    printf("Move %s to %s\n", name_src, name_destn);
+                    mutex_unlock(&mutex);
+
+                    move(name_src, name_destn);
+
+                    break;
                 default: { /* error */
                     fprintf(stderr, "Error: command to apply\n");
 
@@ -248,7 +265,7 @@ void parse_args(int argc, char* argv[]){
         p_outputFile = argv[2];
         numberThreads = atoi(argv[3]);
 
-        if(numberThreads == 0)
+        if(numberThreads <= 0)
             exit_with_error("Error: invalid number of threads\n");
 
     }

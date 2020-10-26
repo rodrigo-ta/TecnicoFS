@@ -11,6 +11,7 @@ void init_fs();
 void destroy_fs();
 int is_dir_empty(DirEntry*);
 int create(char*, type);
+int move(char*, char*);
 int delete(char*);
 int startlookup(char*);
 int lookup(char*, Locks*, int);

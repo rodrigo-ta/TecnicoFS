@@ -71,7 +71,6 @@ void destroy_fs() {
  *  - entries: entries of directory
  * Returns: SUCCESS or FAIL
  */
-
 int is_dir_empty(DirEntry *dirEntries) {
 	if (dirEntries == NULL) {
 		return FAIL;
@@ -180,6 +179,10 @@ int create(char *name, type nodeType){
 	list_unlock_all(locks);
 	list_free(locks);
 
+	return SUCCESS;
+}
+
+int move(char * name_src, char * name_destn){
 	return SUCCESS;
 }
 
