@@ -141,6 +141,28 @@ int get_child(char * name, char * parent_name, char * child_name, Locks * locks,
 }
 
 
+int exit_create_with_error(char * name, char * child_name, char * parent_name, Locks * locks, char * error){
+	if(!strcmp(error, "ERR_PARENT"))
+		printf("failed to create %s, invalid parent dir %s\n", name, parent_name);
+
+	else if(!strcmp(error, "ERR_NOT_DIR"))
+		printf("failed to create %s, parent %s is not a dir\n", name, parent_name);
+
+	else if(!strcmp(error, "ERR_CHILD"))
+		printf("failed to create %s, already exists in dir %s\n", child_name, parent_name);
+	
+	else if(!strcmp(error, "ERR_ALLOC"))
+		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
+
+	else if(!strcmp(error, "ERR_ENTRY"))
+		printf("could not add entry %s in dir %s\n", child_name, parent_name);
+
+	list_unlock_all(locks);
+	list_free(locks);
+	return FAIL;
+}
+
+
 /*
  * Creates a new node given a path.
  * Input:
@@ -160,35 +182,26 @@ int create(char *name, type nodeType){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	if((parent_inumber = get_parent(name, parent_name, locks, "create", &pType, &pdata)) == FAIL)
-		return FAIL;
-	
-	if (lookup_sub_node(child_name, pdata.dirEntries) != FAIL) {
-		printf("failed to create %s, already exists in dir %s\n", child_name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
-		return FAIL;
-	}
-	/* create node and add entry to folder that contains new node */
-	child_inumber = generate_new_inumber();
+	if((parent_inumber = lookup(parent_name, locks, WRITE)) == FAIL)
+		return exit_create_with_error(name, NULL, parent_name, locks, "ERR_PARENT");
 
-	if (child_inumber == FAIL) {
-		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
-		return FAIL;
-	}
+	inode_get(parent_inumber, &pType, &pdata);
+
+	if(pType != T_DIRECTORY)
+		return exit_create_with_error(name, NULL, parent_name, locks, "ERR_NOT_DIR");
+	
+	if (lookup_sub_node(child_name, pdata.dirEntries) != FAIL) 
+		return exit_create_with_error(NULL, child_name, parent_name, locks, "ERR_CHILD");
+
+	if ((child_inumber = generate_new_inumber()) == FAIL)
+		return exit_create_with_error(NULL, child_name, parent_name, locks, "ERR_ALLOC");
 
 	list_add_lock(locks, get_inode_lock(child_inumber));
 	list_write_lock(locks);
 	inode_create(nodeType, child_inumber);
 
-	if (dir_add_entry(parent_inumber, child_inumber, child_name) == FAIL) {
-		printf("could not add entry %s in dir %s\n", child_name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
-		return FAIL;
-	}
+	if (dir_add_entry(parent_inumber, child_inumber, child_name) == FAIL) 
+		return exit_create_with_error(NULL, child_name, parent_name, locks, "ERR_ENTRY");
 	
 	list_unlock_all(locks);
 	list_free(locks);
