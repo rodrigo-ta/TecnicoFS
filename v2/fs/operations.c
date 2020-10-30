@@ -266,6 +266,19 @@ int move(char * src_name, char * destn_name){
 		printf("could not move to %s, already exists in dir %s\n", destn_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
+
+	list_add_lock(locks, get_inode_lock(destn_child_inumber));
+	list_write_lock(locks);
+
+	if (dir_add_entry(destn_parent_inumber, src_child_inumber, destn_child_name) == FAIL){
+		printf("failed to move %s to %s. Could not add entry %s in dir %s\n", src_name, destn_name, destn_child_name, destn_parent_name);
+		return exit_and_unlock(locks);
+	}
+
+	if (dir_reset_entry(src_parent_inumber, src_child_inumber) == FAIL) {
+		printf("failed to move %s to %s. Failed to delete %s from dir %s\n", src_name, destn_name, src_child_name, src_parent_name);
+		return exit_and_unlock(locks);
+	}
 	
 	exit_and_unlock(locks);
 	return SUCCESS;
