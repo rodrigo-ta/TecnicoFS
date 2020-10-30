@@ -1,0 +1,14 @@
+# 8 creates, 2 lookups, 1 delete
+c a d
+c b d
+l a
+l a
+l a
+l a
+c a/a1 f
+c b/b1 f
+l a
+l a
+l a
+l a
+m a/a1 b/b3

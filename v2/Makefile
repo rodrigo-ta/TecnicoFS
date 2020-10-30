@@ -34,7 +34,7 @@ clean:
 	@echo Cleaning...
 	rm -f fs/*.o locks/*.o *.o tecnicofs out.txt
 
-runtest: tecnicofs
+run: tecnicofs
 	./tecnicofs test.txt out.txt 4
 
 run1: tecnicofs

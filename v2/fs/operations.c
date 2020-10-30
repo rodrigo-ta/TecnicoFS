@@ -197,7 +197,6 @@ int create(char *name, type nodeType){
 		printf("could not add entry %s in dir %s\n", child_name, parent_name);
 		return exit_and_unlock(locks);
 	}
-	
 	exit_and_unlock(locks);
 	return SUCCESS;
 }
@@ -211,7 +210,7 @@ int create(char *name, type nodeType){
  */
 int move(char * src_name, char * destn_name){
 	Locks * locks = list_create(INODE_TABLE_SIZE);
-
+	
 	/* variables to store source path information */
 	char *src_parent_name, *src_child_name, src_name_copy[MAX_FILE_NAME];
 	int src_parent_inumber, src_child_inumber;
@@ -220,6 +219,8 @@ int move(char * src_name, char * destn_name){
 
 	strcpy(src_name_copy, src_name);
 	split_parent_child_from_path(src_name_copy, &src_parent_name, &src_child_name);
+
+	printf("src_parent_name = %s\n", src_parent_name);
 
 	if ((src_parent_inumber = lookup_node(src_parent_name, locks, WRITE)) == FAIL) {
 		printf("failed to move from %s, invalid source parent dir %s\n", src_name, src_parent_name);
@@ -249,7 +250,8 @@ int move(char * src_name, char * destn_name){
 
 	strcpy(destn_name_copy, destn_name);
 	split_parent_child_from_path(destn_name_copy, &destn_parent_name, &destn_child_name);
-	
+
+
 	if ((destn_parent_inumber = lookup_node(destn_parent_name, locks, WRITE)) == FAIL) {
 		printf("failed to move to %s, invalid destination parent dir %s\n", destn_name, destn_parent_name);
 		return exit_and_unlock(locks);
@@ -267,8 +269,6 @@ int move(char * src_name, char * destn_name){
 		return exit_and_unlock(locks);
 	}
 
-	list_add_lock(locks, get_inode_lock(destn_child_inumber));
-	list_write_lock(locks);
 
 	if (dir_add_entry(destn_parent_inumber, src_child_inumber, destn_child_name) == FAIL){
 		printf("failed to move %s to %s. Could not add entry %s in dir %s\n", src_name, destn_name, destn_child_name, destn_parent_name);
@@ -279,7 +279,6 @@ int move(char * src_name, char * destn_name){
 		printf("failed to move %s to %s. Failed to delete %s from dir %s\n", src_name, destn_name, src_child_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
-	
 	exit_and_unlock(locks);
 	return SUCCESS;
 }
@@ -400,14 +399,16 @@ int lookup_node(char *name, Locks * locks, int mode) {
 			list_read_lock(locks);
 		return current_inumber;
 	}
+	list_add_lock(locks, get_inode_lock(current_inumber));
+	list_read_lock(locks);
+	inode_get(current_inumber, &nType, &data);
 
 	/* search for all sub nodes */
-	while (current_inumber != FAIL) {
-		
+	while ((current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
+		list_add_lock(locks, get_inode_lock(current_inumber));
+
 		/* next path */
 		path = strtok_r(NULL, delim, &saveptr);
-
-		list_add_lock(locks, get_inode_lock(current_inumber));
 
 		/* locks rwlock depending on mode type, if current path is the last one / next path is null */
 		if(path == NULL){
@@ -419,7 +420,6 @@ int lookup_node(char *name, Locks * locks, int mode) {
 		}
 		list_read_lock(locks);
 		inode_get(current_inumber, &nType, &data);
-		current_inumber = lookup_sub_node(path, data.dirEntries);
 	}
 
 	return current_inumber;

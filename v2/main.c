@@ -231,7 +231,6 @@ void * apply_commands(){
                     delete(name);
                     break;
                 case 'm':
-
                     sscanf(command, "%c %s %s", &token, name_src, name_destn);
                     printf("Move %s to %s\n", name_src, name_destn);
                     mutex_unlock(&mutex);
