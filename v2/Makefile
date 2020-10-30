@@ -32,7 +32,7 @@ main.o: main.c locks/rwlock.h locks/mutex.h fs/operations.h fs/state.h tecnicofs
 
 clean:
 	@echo Cleaning...
-	rm -f fs/*.o locks/*.o *.o tecnicofs
+	rm -f fs/*.o locks/*.o *.o tecnicofs out.txt
 
 runtest: tecnicofs
 	./tecnicofs test.txt out.txt 4

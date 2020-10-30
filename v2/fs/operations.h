@@ -17,8 +17,8 @@ int exit_create_with_message(char*, char*, char*, Locks*, char*);
 int create(char*, type);
 int move(char*, char*);
 int delete(char*);
-int startlookup(char*);
-int lookup(char*, Locks*, int);
+int lookup(char*);
+int lookup_node(char*, Locks*, int);
 void print_tecnicofs_tree(FILE*);
 
 Locks * create_locks();

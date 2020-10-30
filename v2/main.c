@@ -213,7 +213,7 @@ void * apply_commands(){
 
                     mutex_unlock(&mutex);
 
-                    searchResult = startlookup(name);
+                    searchResult = lookup(name);
                     if (searchResult >= 0)
                     {
                         printf("Search: %s found\n", name);
