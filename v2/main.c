@@ -104,9 +104,9 @@ void process_input(){
     /* break loop with ^Z or ^D */
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token, type;
-        char name[MAX_INPUT_SIZE];
+        char name[MAX_INPUT_SIZE], name2[MAX_INPUT_SIZE];
 
-        int numTokens = sscanf(line, "%c %s %c", &token, name, &type);
+        int numTokens = sscanf(line, "%c", &token);
 
         /* perform minimal validation */
         if (numTokens < 1) {
@@ -114,6 +114,7 @@ void process_input(){
         }
         switch (token) {
             case 'c':
+                numTokens = sscanf(line, "%c %s %c", &token, name, &type);
                 if(numTokens != 3)
                     error_parse();
                 if(insert_command(line))
@@ -121,6 +122,7 @@ void process_input(){
                 return;
             
             case 'l':
+                numTokens = sscanf(line, "%c %s", &token, name);
                 if(numTokens != 2)
                     error_parse();
                 if(insert_command(line))
@@ -128,6 +130,7 @@ void process_input(){
                 return;
             
             case 'd':
+                numTokens = sscanf(line, "%c %s %c", &token, name, &type);
                 if(numTokens != 2)
                     error_parse();
                 if(insert_command(line))
@@ -135,6 +138,7 @@ void process_input(){
                 return;
             
             case 'm':
+                numTokens = sscanf(line, "%c %s %s", &token, name, name2);
                 if(numTokens != 3)
                     error_parse();
                 if(insert_command(line))
@@ -172,7 +176,7 @@ void * apply_commands(){
             }
 
             char token, type;
-            char name[MAX_INPUT_SIZE], name_src[MAX_INPUT_SIZE], name_destn[MAX_INPUT_SIZE];
+            char name[MAX_INPUT_SIZE], src_name[MAX_INPUT_SIZE], destn_name[MAX_INPUT_SIZE];
             int numTokens = sscanf(command, "%c %s", &token, name);
             if (numTokens < 2) {
                 fprintf(stderr, "Error: invalid command in Queue\n");
@@ -231,11 +235,11 @@ void * apply_commands(){
                     delete(name);
                     break;
                 case 'm':
-                    sscanf(command, "%c %s %s", &token, name_src, name_destn);
-                    printf("Move %s to %s\n", name_src, name_destn);
+                    sscanf(command, "%c %s %s", &token, src_name, destn_name);
+                    printf("Move %s to %s\n", src_name, destn_name);
                     mutex_unlock(&mutex);
 
-                    move(name_src, name_destn);
+                    move(src_name, destn_name);
 
                     break;
                 default: { /* error */
