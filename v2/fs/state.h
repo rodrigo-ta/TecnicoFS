@@ -49,7 +49,6 @@ inode_t inode_table[INODE_TABLE_SIZE];
 
 
 pthread_rwlock_t * get_inode_lock(int);
-
 void insert_delay(int);
 void inode_table_init();
 void inode_table_destroy();

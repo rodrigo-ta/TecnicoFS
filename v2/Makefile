@@ -35,7 +35,7 @@ clean:
 	rm -f fs/*.o locks/*.o *.o tecnicofs out.txt
 
 run: tecnicofs
-	./tecnicofs test.txt out.txt 4
+	./tecnicofs test.txt out.txt 2
 
 run1: tecnicofs
 	./tecnicofs inputs/test1.txt out.txt 4

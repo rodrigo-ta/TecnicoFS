@@ -43,6 +43,11 @@ void list_write_lock(Locks * locks){
     rwlock_write_lock(locks->rwlocks[locks->num - 1]);
 }
 
+/* Checks if last lock is currently in use. If not, locks it. Return value of trying to lock it*/
+int list_try_write_lock(Locks * locks){
+    return rwlock_try_write_lock(locks->rwlocks[locks->num - 1]);
+}
+
 /* Locks (read) last rwlock of array */
 void list_read_lock(Locks * locks){
     rwlock_read_lock(locks->rwlocks[locks->num - 1]);
@@ -65,11 +70,10 @@ void rwlock_read_lock(pthread_rwlock_t* rwlock){
     }
 }
 
-/* Checks if rwlock lock is currently in use. If not, locks it */
-bool rwlock_try_lock(pthread_rwlock_t* rwlock){
-    if((pthread_rwlock_tryrdlock(rwlock)) == 0)
-        return true;
-    return false;
+/* Checks if rwlock lock is currently in use. If not, locks it. Return value of trying to lock it*/
+int rwlock_try_write_lock(pthread_rwlock_t* rwlock){
+    return pthread_rwlock_trywrlock(rwlock);
+        
 }
 
 /* Locks rwlock or mutex in order to write in critical areas of acess. */

@@ -220,8 +220,6 @@ int move(char * src_name, char * destn_name){
 	strcpy(src_name_copy, src_name);
 	split_parent_child_from_path(src_name_copy, &src_parent_name, &src_child_name);
 
-	printf("src_parent_name = %s\n", src_parent_name);
-
 	if ((src_parent_inumber = lookup_node(src_parent_name, locks, WRITE)) == FAIL) {
 		printf("failed to move from %s, invalid source parent dir %s\n", src_name, src_parent_name);
 		return exit_and_unlock(locks);
@@ -238,7 +236,7 @@ int move(char * src_name, char * destn_name){
 		printf("could not move from %s, does not exist in dir %s\n", src_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
-
+	
 	list_add_lock(locks, get_inode_lock(src_child_inumber));
 	list_write_lock(locks);
 
@@ -252,9 +250,27 @@ int move(char * src_name, char * destn_name){
 	split_parent_child_from_path(destn_name_copy, &destn_parent_name, &destn_child_name);
 
 
-	if ((destn_parent_inumber = lookup_node(destn_parent_name, locks, WRITE)) == FAIL) {
+	if ((destn_parent_inumber = lookup_node(destn_parent_name, locks, TRYWRITE)) == FAIL) {
 		printf("failed to move to %s, invalid destination parent dir %s\n", destn_name, destn_parent_name);
 		return exit_and_unlock(locks);
+	}
+
+	/* check if we were able to lock inode of destination parent */
+	if(list_try_write_lock(locks) != 0){
+		pthread_rwlock_t * src_parent_inode_lock = get_inode_lock(src_parent_inumber);
+		rwlock_unlock(src_parent_inode_lock);
+		int acquired = 0, num_trys = 1;
+
+		/* interlayer locking and unlocking inode of source parent until it can lock  inode of destination parent*/
+		while(!acquired){
+			rwlock_write_lock(src_parent_inode_lock);
+			if(list_try_write_lock(locks) == 0)
+				acquired = 1;
+			else{
+				rwlock_unlock(src_parent_inode_lock);
+				usleep((rand()%(++num_trys * MAXSLEEPTIME)) * 1000); // sleep for miliseconds
+			}
+		}
 	}
 
 	inode_get(destn_parent_inumber, &destn_parent_type, &destn_parent_data);
@@ -268,7 +284,6 @@ int move(char * src_name, char * destn_name){
 		printf("could not move to %s, already exists in dir %s\n", destn_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
-
 
 	if (dir_add_entry(destn_parent_inumber, src_child_inumber, destn_child_name) == FAIL){
 		printf("failed to move %s to %s. Could not add entry %s in dir %s\n", src_name, destn_name, destn_child_name, destn_parent_name);
@@ -301,6 +316,7 @@ int delete(char *name){
 
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
+
 
 	if ((parent_inumber = lookup_node(parent_name, locks, WRITE)) == FAIL) {
 		printf("failed to delete %s, invalid parent dir %s\n", name, parent_name);
@@ -374,8 +390,9 @@ int lookup(char *name){
  *  inumber: identifier of the i-node, if found
  *     FAIL: otherwise
  * locks every path to read except last one:
+ * if mode = TRYWRITE (0): DOES NOT lock inode of last path but adds it to list of locks
  * if mode = WRITE (1): locks to write mode when strtok reaches last path
- * if mode = READ (0): locks to read mode when strtok reaches last path
+ * if mode = READ (2): locks to read mode when strtok reaches last path
  * 
  */
 int lookup_node(char *name, Locks * locks, int mode) {
@@ -405,8 +422,9 @@ int lookup_node(char *name, Locks * locks, int mode) {
 	while ((current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
 		list_add_lock(locks, get_inode_lock(current_inumber));
 
-		/* lock rwlock depending on mode type, if current path is the last one / next path is null */
+		/* if next path is null which means the current path is the last one */
 		if((path = strtok_r(NULL, delim, &saveptr)) == NULL){
+			/* locks according to mode */
 			if(mode == WRITE)
 				list_write_lock(locks);
 			else if(mode == READ)
