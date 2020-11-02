@@ -49,18 +49,27 @@ void inode_table_destroy() {
 /*
  * Creates a new i-node in the table with the given information.
  * Input:
- *  - nType: the type of the node (file or directory)
+ *  - parent_inumber: parent inumber where its node is locked to write
  * Returns:
  *  inumber: identifier of the new i-node, if successfully created
  *     FAIL: if an error occurs
  */
 
-int generate_new_inumber(){
+int generate_new_inumber(int parent_inumber){
+    //pthread_rwlock_t * rwlock;
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
-    for(int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++)
-        if(inode_table[inumber].nodeType == T_NONE)
-            return inumber;
+    for(int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++){
+        //if(parent_inumber != inumber){
+            //rwlock = get_inode_lock(inumber);
+            //rwlock_read_lock(rwlock);
+            if(inode_table[inumber].nodeType == T_NONE){
+                //rwlock_unlock(rwlock);
+                return inumber;
+            }
+            //rwlock_unlock(rwlock);
+        //}
+    }
     return FAIL;
 }
 

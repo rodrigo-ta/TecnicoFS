@@ -16,6 +16,7 @@ typedef struct{
 
 Locks * list_create();
 void list_add_lock(Locks*, pthread_rwlock_t*);
+void list_remove_lock(Locks*);
 void list_unlock_all(Locks*);
 void list_free(Locks*);
 void list_write_lock(Locks*);

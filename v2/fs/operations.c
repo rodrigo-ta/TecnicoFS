@@ -47,7 +47,7 @@ void init_fs() {
 	inode_table_init();
 	
 	/* create root inode */
-	int root = generate_new_inumber();
+	int root = generate_new_inumber(-2);
 	inode_create(T_DIRECTORY, root);
 	
 	if (root != FS_ROOT) {
@@ -173,7 +173,7 @@ int create(char *name, type nodeType){
 	}
 
 	inode_get(parent_inumber, &pType, &pdata);
-
+	
 	if(pType != T_DIRECTORY){
 		printf("failed to create %s, parent %s is not a dir\n", name, parent_name);
 		return exit_and_unlock(locks);
@@ -184,11 +184,11 @@ int create(char *name, type nodeType){
 		return exit_and_unlock(locks);
 	}
 
-	if ((child_inumber = generate_new_inumber()) == FAIL){
+	if ((child_inumber = generate_new_inumber(parent_inumber)) == FAIL){
 		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
 		return exit_and_unlock(locks);
 	}
-
+	
 	list_add_lock(locks, get_inode_lock(child_inumber));
 	list_write_lock(locks);
 	inode_create(nodeType, child_inumber);
@@ -249,29 +249,32 @@ int move(char * src_name, char * destn_name){
 	strcpy(destn_name_copy, destn_name);
 	split_parent_child_from_path(destn_name_copy, &destn_parent_name, &destn_child_name);
 
-
-	if ((destn_parent_inumber = lookup_node(destn_parent_name, locks, TRYWRITE)) == FAIL) {
+	if((destn_parent_inumber = lookup_node(destn_parent_name, locks, TRYWRITE)) == FAIL) {
 		printf("failed to move to %s, invalid destination parent dir %s\n", destn_name, destn_parent_name);
 		return exit_and_unlock(locks);
 	}
 
-	/* check if we were able to lock inode of destination parent */
-	if(list_try_write_lock(locks) != 0){
-		pthread_rwlock_t * src_parent_inode_lock = get_inode_lock(src_parent_inumber);
-		rwlock_unlock(src_parent_inode_lock);
-		int acquired = 0, num_trys = 1;
+	if(src_parent_inumber != destn_parent_inumber){
+		/* check if we were able to lock inode of destination parent */
+		if(list_try_write_lock(locks) != 0){
+			pthread_rwlock_t * src_parent_inode_lock = get_inode_lock(src_parent_inumber);
+			rwlock_unlock(src_parent_inode_lock);
+			int acquired = 0, num_trys = 1;
 
-		/* interlayer locking and unlocking inode of source parent until it can lock  inode of destination parent*/
-		while(!acquired){
-			rwlock_write_lock(src_parent_inode_lock);
-			if(list_try_write_lock(locks) == 0)
-				acquired = 1;
-			else{
-				rwlock_unlock(src_parent_inode_lock);
-				usleep((rand()%(++num_trys * MAXSLEEPTIME)) * 1000); // sleep for miliseconds
+			/* interlayer locking and unlocking inode of source parent until it can lock  inode of destination parent*/
+			while(!acquired){
+				rwlock_write_lock(src_parent_inode_lock);
+				if(list_try_write_lock(locks) == 0)
+					acquired = 1;
+				else{
+					rwlock_unlock(src_parent_inode_lock);
+					usleep((rand()%(++num_trys * MAXSLEEPTIME)) * 1000); // sleep for miliseconds
+				}
 			}
 		}
 	}
+	else
+		list_remove_lock(locks);
 
 	inode_get(destn_parent_inumber, &destn_parent_type, &destn_parent_data);
 

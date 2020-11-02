@@ -20,10 +20,16 @@ Locks * list_create(int size){
 	return locks;
 }
 
-/* Add address of rwlock to list of locks and increments number of locks */
+/* Add last rwlock address and increments number of locks */
 void list_add_lock(Locks * locks, pthread_rwlock_t * p_rwlock){
     locks->rwlocks[locks->num] = p_rwlock;
     locks->num++;
+}
+
+/* Remove last rwlock address and decrements number of locks */
+void list_remove_lock(Locks * locks){
+    locks->rwlocks[locks->num-1] = NULL;
+    locks->num--;
 }
 
 /* Unlock every rwlock in locks list */

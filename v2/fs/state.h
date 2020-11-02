@@ -52,7 +52,7 @@ pthread_rwlock_t * get_inode_lock(int);
 void insert_delay(int);
 void inode_table_init();
 void inode_table_destroy();
-int generate_new_inumber();
+int generate_new_inumber(int);
 int inode_create(type, int);
 int inode_delete(int);
 int inode_get(int, type*, union Data*);
