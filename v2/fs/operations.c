@@ -225,6 +225,9 @@ int move(char * src_name, char * destn_name){
 		return exit_and_unlock(locks);
 	}
 
+	for(int i = 0; i < 6; i++)
+		printf("(%d) %p\n", i, locks->rwlocks[i]);
+
 	inode_get(src_parent_inumber, &src_parent_type, &src_parent_data);
 
 	if(src_parent_type != T_DIRECTORY) {
@@ -297,6 +300,7 @@ int move(char * src_name, char * destn_name){
 		printf("failed to move %s to %s. Failed to delete %s from dir %s\n", src_name, destn_name, src_child_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
+
 	exit_and_unlock(locks);
 	return SUCCESS;
 }

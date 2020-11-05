@@ -60,15 +60,15 @@ int generate_new_inumber(int parent_inumber){
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
     for(int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++){
-        //if(parent_inumber != inumber){
+        if(parent_inumber != inumber){
             //rwlock = get_inode_lock(inumber);
-            //rwlock_read_lock(rwlock);
+            //pthread_rwlock_rdlock(rwlock);
             if(inode_table[inumber].nodeType == T_NONE){
                 //rwlock_unlock(rwlock);
                 return inumber;
             }
             //rwlock_unlock(rwlock);
-        //}
+        }
     }
     return FAIL;
 }
