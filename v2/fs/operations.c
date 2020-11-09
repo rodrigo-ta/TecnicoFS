@@ -183,7 +183,7 @@ int create(char *name, type nodeType){
 		printf("failed to create %s, already exists in dir %s\n", child_name, parent_name);
 		return exit_and_unlock(locks);
 	}
-
+	
 	if ((child_inumber = generate_new_inumber(parent_inumber)) == FAIL){
 		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
 		return exit_and_unlock(locks);
