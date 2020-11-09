@@ -177,7 +177,9 @@ void * process_input(){
         }
         mutex_unlock(&mutex);
     }
+    /* wait until all commands are remmoved and then signal all threads that are removing commands */
     while(numberCommands != 0);
+
     eof = 1;
     cond_broadcast(&can_remove);
     fclose(inputFile);

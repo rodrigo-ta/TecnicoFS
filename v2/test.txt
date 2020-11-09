@@ -1,4 +1,13 @@
-c a d
-c b d
-c a/a1 f
-c b/b1 f
+c a f
+c b f
+c c f
+c d f
+c e f
+c f f
+c g f
+c h f
+l c
+d c
+l c
+m /a /a1
+m /b /b1

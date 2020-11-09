@@ -56,20 +56,20 @@ void inode_table_destroy() {
  *     FAIL: if an error occurs
  */
 
-int generate_new_inumber(int parent_inumber){
+int generate_new_inumber(){
     pthread_rwlock_t * rwlock;
+
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
+
     for(int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++){
-        if(parent_inumber != inumber){
-            rwlock = get_inode_lock(inumber);
-            if(pthread_rwlock_tryrdlock(rwlock) == 0){
-                if(inode_table[inumber].nodeType == T_NONE){
-                    rwlock_unlock(rwlock);
-                    return inumber;
-                }
+        rwlock = get_inode_lock(inumber);
+        if(rwlock_try_read_lock(rwlock) == 0){
+            if(inode_table[inumber].nodeType == T_NONE){
                 rwlock_unlock(rwlock);
+                return inumber;
             }
+            rwlock_unlock(rwlock);
         }
     }
     return FAIL;

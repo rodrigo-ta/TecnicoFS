@@ -51,7 +51,7 @@ void list_write_lock(Locks * locks){
 
 /* Checks if last lock is currently in use. If not, locks it. Return value of trying to lock it*/
 int list_try_write_lock(Locks * locks){
-    return pthread_rwlock_trywrlock(locks->rwlocks[locks->num - 1]);
+    return rwlock_try_write_lock(locks->rwlocks[locks->num - 1]);
 }
 
 /* Locks (read) last rwlock of array */
@@ -74,6 +74,35 @@ void rwlock_read_lock(pthread_rwlock_t* rwlock){
         fprintf(stderr, "Error: Couldn't apply read lock to read-write lock.\n");
         exit(EXIT_FAILURE);
     }
+}
+
+/* 
+** Try lock rwlock in order to write.
+** Return value if locks was successful (0) or can't be acquired (EBUSY).
+** If error condition is other than EBUSY, prints error in stderr and exit program.
+*/
+int rwlock_try_write_lock(pthread_rwlock_t* rwlock){
+    int value = pthread_rwlock_trywrlock(rwlock);
+    if(value != 0 && value != EBUSY){
+        fprintf(stderr, "Error while trying to lock rwlock in order to write.\n");
+        exit(EXIT_FAILURE);
+    }
+    return value;  
+}
+
+/* 
+** Try lock rwlock in order to read.
+** Return value if locks was successful (0) or can't be acquired (EBUSY).
+** If error condition is EINVAL, prints error in stderr and exit program.
+*/
+int rwlock_try_read_lock(pthread_rwlock_t* rwlock){
+    int value = pthread_rwlock_tryrdlock(rwlock);
+    if(value != 0 && value != EBUSY){
+        fprintf(stderr, "Error while trying to lock rwlock in order to write.\n");
+        exit(EXIT_FAILURE);
+    }
+    return value; 
+        
 }
 
 /* Locks rwlock or mutex in order to write in critical areas of acess. */

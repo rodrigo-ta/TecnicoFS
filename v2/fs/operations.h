@@ -10,6 +10,7 @@
 #define WRITE 1
 #define READ 2
 #define MAXSLEEPTIME 1
+#define MAXINUMBERS 2
 
 void init_fs();
 void destroy_fs();
@@ -17,8 +18,8 @@ int exit_and_unlock(Locks*);
 int is_dir_empty(DirEntry*);
 int exit_create_with_message(char*, char*, char*, Locks*, char*);
 int create(char*, type);
-int verify_source_parent(Locks*, char*, char*, char*);
-int verify_destination_parent(Locks*, char*, char*, char*);
+int verify_source(Locks*, char*, char*, char*, int*);
+int verify_destination(Locks*, char*, char*, char*, char*, int, int*);
 int move(char*, char*);
 int delete(char*);
 int lookup(char*);
