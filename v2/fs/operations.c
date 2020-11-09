@@ -183,7 +183,7 @@ int create(char *name, type nodeType){
 		printf("failed to create %s, already exists in dir %s\n", child_name, parent_name);
 		return exit_and_unlock(locks);
 	}
-	
+
 	if ((child_inumber = generate_new_inumber(parent_inumber)) == FAIL){
 		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
 		return exit_and_unlock(locks);
@@ -224,9 +224,6 @@ int move(char * src_name, char * destn_name){
 		printf("failed to move from %s, invalid source parent dir %s\n", src_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
-
-	for(int i = 0; i < 6; i++)
-		printf("(%d) %p\n", i, locks->rwlocks[i]);
 
 	inode_get(src_parent_inumber, &src_parent_type, &src_parent_data);
 
