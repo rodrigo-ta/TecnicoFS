@@ -113,41 +113,6 @@ int lookup_sub_node(char *name, DirEntry *entries) {
 	return FAIL;
 }
 
-int get_parent(char * name, char * parent_name, Locks * locks, char * cmd, type * pType, union Data *pdata){
-	int parent_inumber = lookup_node(parent_name, locks, WRITE);
-
-	if (parent_inumber == FAIL) {
-		printf("failed to %s %s, invalid parent dir %s\n", cmd, name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
-		return FAIL;
-	}
-
-	inode_get(parent_inumber, pType, pdata);
-
-	if(*pType != T_DIRECTORY) {
-		printf("failed to %s %s, parent %s is not a dir\n", cmd, name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
-		return FAIL;
-	}
-	return parent_inumber;
-}
-
-int get_child(char * name, char * parent_name, char * child_name, Locks * locks, char * cmd, union Data pdata){
-	int child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
-	if(child_inumber == FAIL){
-		printf("could not %s %s, does not exist in dir %s\n", cmd, name, parent_name);
-		list_unlock_all(locks);
-		list_free(locks);
-		return child_inumber;
-	}
-	list_add_lock(locks, get_inode_lock(child_inumber));
-	list_write_lock(locks);
-
-	return child_inumber;
-}
-
 /*
  * Creates a new node given a path.
  * Input:
@@ -201,14 +166,52 @@ int create(char *name, type nodeType){
 	return SUCCESS;
 }
 
+int verify_source_parent(Locks * locks, char * src_name, char * src_parent_name, char * src_child_name){
+	int src_parent_inumber;
+	type src_parent_type;
+	union Data src_parent_data;
+
+	if ((src_parent_inumber = lookup_node(src_parent_name, locks, WRITE)) == FAIL) {
+		printf("failed to move from %s, invalid source parent dir %s\n", src_name, src_parent_name);
+		return exit_and_unlock(locks);
+	}
+
+	inode_get(src_parent_inumber, &src_parent_type, &src_parent_data);
+
+	if(src_parent_type != T_DIRECTORY) {
+		printf("failed to move from %s, source parent %s is not a dir\n", src_name, src_parent_name);
+		return exit_and_unlock(locks);
+	}
+	return src_parent_inumber;
+}
+
+int verify_destination_parent(Locks * locks, char * dest_name, char * dest_parent_name, char * dest_child_name){
+	int dest_parent_inumber;
+	type dest_parent_type;
+	union Data dest_parent_data;
+
+	if ((dest_parent_inumber = lookup_node(dest_parent_name, locks, WRITE)) == FAIL) {
+		printf("failed to move from %s, invalid dest parent dir %s\n", dest_name, dest_parent_name);
+		return exit_and_unlock(locks);
+	}
+
+	inode_get(dest_parent_inumber, &dest_parent_type, &dest_parent_data);
+
+	if(dest_parent_type != T_DIRECTORY) {
+		printf("failed to move from %s, dest parent %s is not a dir\n", dest_name, dest_parent_name);
+		return exit_and_unlock(locks);
+	}
+	return dest_parent_inumber;
+}
+
 /*
  * Move a source path to a destination path
  * Input:
  *  - src_name: path of source node
- *  - destn_name: path of destination node
+ *  - dest_name: path of destination node
  * Returns: SUCCESS or FAIL
  */
-int move(char * src_name, char * destn_name){
+int move(char * src_name, char * dest_name){
 	Locks * locks = list_create(INODE_TABLE_SIZE);
 	
 	/* variables to store source path information */
@@ -241,20 +244,20 @@ int move(char * src_name, char * destn_name){
 	list_write_lock(locks);
 
 	/* variables to store destination path information */
-	char *destn_parent_name, *destn_child_name, destn_name_copy[MAX_FILE_NAME];
-	int destn_parent_inumber, destn_child_inumber;
-	type destn_parent_type;
-	union Data destn_parent_data;
+	char *dest_parent_name, *dest_child_name, dest_name_copy[MAX_FILE_NAME];
+	int dest_parent_inumber, dest_child_inumber;
+	type dest_parent_type;
+	union Data dest_parent_data;
 
-	strcpy(destn_name_copy, destn_name);
-	split_parent_child_from_path(destn_name_copy, &destn_parent_name, &destn_child_name);
+	strcpy(dest_name_copy, dest_name);
+	split_parent_child_from_path(dest_name_copy, &dest_parent_name, &dest_child_name);
 
-	if((destn_parent_inumber = lookup_node(destn_parent_name, locks, TRYWRITE)) == FAIL) {
-		printf("failed to move to %s, invalid destination parent dir %s\n", destn_name, destn_parent_name);
+	if((dest_parent_inumber = lookup_node(dest_parent_name, locks, TRYWRITE)) == FAIL) {
+		printf("failed to move to %s, invalid destination parent dir %s\n", dest_name, dest_parent_name);
 		return exit_and_unlock(locks);
 	}
 
-	if(src_parent_inumber != destn_parent_inumber){
+	if(src_parent_inumber != dest_parent_inumber){
 		/* check if we were able to lock inode of destination parent */
 		if(list_try_write_lock(locks) != 0){
 			pthread_rwlock_t * src_parent_inode_lock = get_inode_lock(src_parent_inumber);
@@ -276,25 +279,25 @@ int move(char * src_name, char * destn_name){
 	else
 		list_remove_lock(locks);
 
-	inode_get(destn_parent_inumber, &destn_parent_type, &destn_parent_data);
+	inode_get(dest_parent_inumber, &dest_parent_type, &dest_parent_data);
 
-	if(destn_parent_type != T_DIRECTORY) {
-		printf("failed to move to %s, destination parent %s is not a dir\n", destn_name, destn_parent_name);
+	if(dest_parent_type != T_DIRECTORY) {
+		printf("failed to move to %s, destination parent %s is not a dir\n", dest_name, dest_parent_name);
 		return exit_and_unlock(locks);
 	}
 
-	if((destn_child_inumber = lookup_sub_node(destn_child_name, destn_parent_data.dirEntries)) != FAIL){
-		printf("could not move to %s, already exists in dir %s\n", destn_name, src_parent_name);
+	if((dest_child_inumber = lookup_sub_node(dest_child_name, dest_parent_data.dirEntries)) != FAIL){
+		printf("could not move to %s, already exists in dir %s\n", dest_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
 
-	if (dir_add_entry(destn_parent_inumber, src_child_inumber, destn_child_name) == FAIL){
-		printf("failed to move %s to %s. Could not add entry %s in dir %s\n", src_name, destn_name, destn_child_name, destn_parent_name);
+	if (dir_add_entry(dest_parent_inumber, src_child_inumber, dest_child_name) == FAIL){
+		printf("failed to move %s to %s. Could not add entry %s in dir %s\n", src_name, dest_name, dest_child_name, dest_parent_name);
 		return exit_and_unlock(locks);
 	}
 
 	if (dir_reset_entry(src_parent_inumber, src_child_inumber) == FAIL) {
-		printf("failed to move %s to %s. Failed to delete %s from dir %s\n", src_name, destn_name, src_child_name, src_parent_name);
+		printf("failed to move %s to %s. Failed to delete %s from dir %s\n", src_name, dest_name, src_child_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
 

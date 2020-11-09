@@ -193,7 +193,7 @@ void * apply_commands(){
             return NULL;
         }
         char token, type;
-        char name[MAX_INPUT_SIZE], src_name[MAX_INPUT_SIZE], destn_name[MAX_INPUT_SIZE];
+        char name[MAX_INPUT_SIZE], src_name[MAX_INPUT_SIZE], dest_name[MAX_INPUT_SIZE];
         int numTokens = sscanf(command, "%c %s", &token, name);
         if (numTokens < 2) {
             fprintf(stderr, "Error: invalid command in Queue\n");
@@ -252,11 +252,11 @@ void * apply_commands(){
                 delete(name);
                 break;
             case 'm':
-                sscanf(command, "%c %s %s", &token, src_name, destn_name);
-                printf("Move %s to %s\n", src_name, destn_name);
+                sscanf(command, "%c %s %s", &token, src_name, dest_name);
+                printf("Move %s to %s\n", src_name, dest_name);
                 mutex_unlock(&mutex);
 
-                move(src_name, destn_name);
+                move(src_name, dest_name);
 
                 break;
             default: { /* error */

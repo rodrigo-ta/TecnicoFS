@@ -24,7 +24,6 @@ int list_try_write_lock(Locks*);
 void list_read_lock(Locks*);
 void rwlock_init(pthread_rwlock_t*);
 void rwlock_read_lock(pthread_rwlock_t*);
-int rwlock_try_write_lock(pthread_rwlock_t*);
 void rwlock_write_lock(pthread_rwlock_t*);
 void rwlock_unlock(pthread_rwlock_t*);
 void rwlock_destroy(pthread_rwlock_t*);

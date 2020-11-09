@@ -14,17 +14,15 @@
 void init_fs();
 void destroy_fs();
 int exit_and_unlock(Locks*);
-int get_parent(char*, char*, Locks*, char*, type*, union Data*);
-int get_child(char*, char*, char*, Locks*, char *, union Data);
 int is_dir_empty(DirEntry*);
 int exit_create_with_message(char*, char*, char*, Locks*, char*);
 int create(char*, type);
+int verify_source_parent(Locks*, char*, char*, char*);
+int verify_destination_parent(Locks*, char*, char*, char*);
 int move(char*, char*);
 int delete(char*);
 int lookup(char*);
 int lookup_node(char*, Locks*, int);
 void print_tecnicofs_tree(FILE*);
-
-Locks * create_locks();
 
 #endif /* FS_H */

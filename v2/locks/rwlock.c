@@ -51,7 +51,7 @@ void list_write_lock(Locks * locks){
 
 /* Checks if last lock is currently in use. If not, locks it. Return value of trying to lock it*/
 int list_try_write_lock(Locks * locks){
-    return rwlock_try_write_lock(locks->rwlocks[locks->num - 1]);
+    return pthread_rwlock_trywrlock(locks->rwlocks[locks->num - 1]);
 }
 
 /* Locks (read) last rwlock of array */
@@ -62,7 +62,7 @@ void list_read_lock(Locks * locks){
 
 /* Initializes mutex lock or read-write lock */
 void rwlock_init(pthread_rwlock_t* rwlock){
-    if(pthread_rwlock_init(rwlock, NULL)){ // returns != 0 if not successful
+    if(pthread_rwlock_init(rwlock, NULL) != 0){
         fprintf(stderr, "Error: couldn't initiate rwlock.\n");
         exit(EXIT_FAILURE);
     }
@@ -70,21 +70,15 @@ void rwlock_init(pthread_rwlock_t* rwlock){
 
 /* Locks rwlock or mutex in order to read critical areas of access */
 void rwlock_read_lock(pthread_rwlock_t* rwlock){  
-    if(pthread_rwlock_rdlock(rwlock)){ // returns != 0 if not successful
+    if(pthread_rwlock_rdlock(rwlock) != 0){
         fprintf(stderr, "Error: Couldn't apply read lock to read-write lock.\n");
         exit(EXIT_FAILURE);
     }
 }
 
-/* Checks if rwlock lock is currently in use. If not, locks it. Return value of trying to lock it*/
-int rwlock_try_write_lock(pthread_rwlock_t* rwlock){
-    return pthread_rwlock_trywrlock(rwlock);
-        
-}
-
 /* Locks rwlock or mutex in order to write in critical areas of acess. */
 void rwlock_write_lock(pthread_rwlock_t* rwlock){
-    if(pthread_rwlock_wrlock(rwlock)){ // returns != 0 if not successful
+    if(pthread_rwlock_wrlock(rwlock) != 0){
         fprintf(stderr, "Error: Couldn't apply write lock to read-write lock.\n");
         exit(EXIT_FAILURE);
     }
@@ -92,7 +86,7 @@ void rwlock_write_lock(pthread_rwlock_t* rwlock){
 
 /* Unlocks rwlock or mutex */
 void rwlock_unlock(pthread_rwlock_t* rwlock){
-    if(pthread_rwlock_unlock(rwlock)){ // returns != 0 if not successful
+    if(pthread_rwlock_unlock(rwlock) != 0){
         fprintf(stderr, "Error: Couldn't unlock read-write lock.\n");
         exit(EXIT_FAILURE);
     }
@@ -100,7 +94,7 @@ void rwlock_unlock(pthread_rwlock_t* rwlock){
 
 /* Destroys rwlock, mutex. */
 void rwlock_destroy(pthread_rwlock_t* rwlock){
-    if(pthread_rwlock_destroy(rwlock)){ // returns != 0 if not successful
+    if(pthread_rwlock_destroy(rwlock) != 0){
         fprintf(stderr, "Error: Couldn't destroy read-write lock.\n");
         exit(EXIT_FAILURE);
     }
