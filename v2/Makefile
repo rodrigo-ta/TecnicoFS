@@ -35,7 +35,7 @@ main.o: main.c locks/rwlock.h locks/mutex.h locks/conditions.h fs/operations.h f
 
 clean:
 	@echo Cleaning...
-	rm -f fs/*.o locks/*.o *.o tecnicofs out.txt
+	rm -df output/* output fs/*.o locks/*.o *.o tecnicofs out.txt
 
 run: tecnicofs
 	./tecnicofs test.txt out.txt 2
