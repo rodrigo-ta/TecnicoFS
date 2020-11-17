@@ -225,7 +225,7 @@ int verify_destination(Locks * locks, char * dest_name, char * dest_parent_name,
 	type dest_parent_type;
 	union Data dest_parent_data;
 
-	if((dest_parent_inumber = lookup_node(dest_parent_name, locks, TRYWRITE)) == FAIL) {
+	if((dest_parent_inumber = lookup_node(dest_parent_name, locks, DONOTHING)) == FAIL) {
 		printf("failed to move to %s, invalid destination parent dir %s\n", dest_name, dest_parent_name);
 		return exit_and_unlock(locks);
 	}
@@ -408,7 +408,7 @@ int lookup(char *name){
  *  inumber: identifier of the i-node, if found
  *     FAIL: otherwise
  * locks every path to read except last one:
- * if mode = TRYWRITE (0): DOES NOT lock inode of last path but adds it to list of locks
+ * if mode = DONOTHING (0): DOES NOT lock inode of last path but adds it to list of locks
  * if mode = WRITE (1): locks to write mode when strtok reaches last path
  * if mode = READ (2): locks to read mode when strtok reaches last path
  * 

@@ -6,10 +6,15 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#define TRYWRITE 0
+
+/* Constants that describe type of operation to realize */
+#define DONOTHING 0
 #define WRITE 1
 #define READ 2
+
 #define MAXSLEEPTIME 1
+
+/* Maximum i-node numbers in move command (1 for parent, 1 for source) */
 #define MAXINUMBERS 2
 
 void init_fs();
