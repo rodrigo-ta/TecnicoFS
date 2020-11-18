@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <errno.h>
+#include <stdbool.h>
 
 typedef struct{
     pthread_rwlock_t ** rwlocks;

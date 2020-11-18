@@ -169,7 +169,6 @@ int create(char *name, type nodeType){
 		printf("failed to create %s in  %s, couldn't allocate inode\n", child_name, parent_name);
 		return exit_and_unlock(locks);
 	}
-	
 	list_add_lock(locks, get_inode_lock(child_inumber));
 	list_write_lock(locks);
 	inode_create(nodeType, child_inumber);
@@ -177,7 +176,8 @@ int create(char *name, type nodeType){
 	if (dir_add_entry(parent_inumber, child_inumber, child_name) == FAIL){
 		printf("could not add entry %s in dir %s\n", child_name, parent_name);
 		return exit_and_unlock(locks);
-	}
+	};
+
 	exit_and_unlock(locks);
 	return SUCCESS;
 }
@@ -203,6 +203,7 @@ int verify_source(Locks * locks, char * src_name, char * src_parent_name, char *
 		printf("failed to move from %s, invalid source parent dir %s\n", src_name, src_parent_name);
 		return exit_and_unlock(locks);
 	}
+
 
 	inode_get(src_parent_inumber, &src_parent_type, &src_parent_data);
 
@@ -247,26 +248,35 @@ int verify_destination(Locks * locks, char * dest_name, char * dest_parent_name,
 	}
 
 	if(src_parent_inumber != dest_parent_inumber){
-		/* check if we were able to lock inode of destination parent */
+		for(int i = 0; i < locks->num; i++)
+
+		/* checks if destination parent name is part of source parent name. If so, unlocks read-locked */
+		/* i-node in source path which is the same i-node of destination parent i-node to be write-locked */
+		if(check_if_subset(dest_parent_name, src_parent_name) == true){
+			pthread_rwlock_t * dest_parent_inode_lock = get_inode_lock(dest_parent_inumber);
+			rwlock_unlock(dest_parent_inode_lock);
+		}
+
+		/* try to write-lock dest parent i-node until it succeeds */
 		if(list_try_write_lock(locks) != 0){
 			pthread_rwlock_t * src_parent_inode_lock = get_inode_lock(src_parent_inumber);
 			rwlock_unlock(src_parent_inode_lock);
 			int acquired = 0, num_trys = 1;
 
-			/* interlayer locking and unlocking inode of source parent until it can lock  inode of destination parent*/
+			printf("%p\n", locks->rwlocks[locks->num - 1]);
+
+			/* interlayer locking and unlocking inode of source parent until it can lock inode of destination parent (prevents deadlocks) */
 			while(!acquired){
 				rwlock_write_lock(src_parent_inode_lock);
 				if(list_try_write_lock(locks) == 0)
 					acquired = 1;
 				else{
 					rwlock_unlock(src_parent_inode_lock);
-					usleep((rand()%(++num_trys * MAXSLEEPTIME)) * 1000); // sleep for miliseconds
+					usleep((rand()%(++num_trys * MAXSLEEPTIME)) * 1000); // sleep for miliseconds (increases with number of tries)
 				}
 			}
 		}
 	}
-	else
-		list_remove_lock(locks);
 
 	inode_get(dest_parent_inumber, &dest_parent_type, &dest_parent_data);
 
@@ -274,6 +284,7 @@ int verify_destination(Locks * locks, char * dest_name, char * dest_parent_name,
 		printf("failed to move to %s, destination parent %s is not a dir\n", dest_name, dest_parent_name);
 		return exit_and_unlock(locks);
 	}
+
 
 	if((dest_child_inumber = lookup_sub_node(dest_child_name, dest_parent_data.dirEntries)) != FAIL){
 		printf("could not move to %s, already exists in dir %s\n", dest_name, src_parent_name);
@@ -320,10 +331,11 @@ int move(char * src_name, char * dest_name){
 
 	if(verify_source(locks, src_name, src_parent_name, src_child_name, src_inumbers) == FAIL)
 		return FAIL;
-	
+
 	src_parent_inumber = src_inumbers[0];
 	src_child_inumber = src_inumbers[1];
 
+	/* add source child i-node lock to the list and write-locks it */
 	list_add_lock(locks, get_inode_lock(src_child_inumber));
 	list_write_lock(locks);
 
@@ -383,6 +395,7 @@ int delete(char *name){
 		return exit_and_unlock(locks);
 	}
 
+	/* add child i-node lock to the list and write-locks it */
 	list_add_lock(locks, get_inode_lock(child_inumber));
 	list_write_lock(locks);
 	inode_get(child_inumber, &cType, &cdata);
@@ -440,45 +453,34 @@ int lookup(char *name){
  * 
  */
 int lookup_node(char *name, Locks * locks, int mode) {
-	char full_path[MAX_FILE_NAME], *saveptr, *path;
+	char *saveptr, *path;
 	char delim[] = "/";
-	strcpy(full_path, name);
 	int current_inumber = FS_ROOT;
+	char *full_path = (char*) malloc(sizeof(char) * MAX_FILE_NAME);
+	strcpy(full_path, name);
 
 	/* use for copy */
 	type nType;
 	union Data data;
 
-	list_add_lock(locks, get_inode_lock(current_inumber));
-
-	/* locks rwlock of root inode if accessing file/directory directly in fs root */
-	if((path = strtok_r(full_path, delim, &saveptr)) == NULL){
-		if(mode == WRITE)
-			list_write_lock(locks);
-		else if(mode == READ)
-			list_read_lock(locks);
-		return current_inumber;
-	}
-	list_read_lock(locks);
-	inode_get(current_inumber, &nType, &data);
-
 	/* search for all sub nodes */
-	while ((current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
+	do{
 		list_add_lock(locks, get_inode_lock(current_inumber));
 
 		/* if next path is null which means the current path is the last one */
-		if((path = strtok_r(NULL, delim, &saveptr)) == NULL){
-			/* locks according to mode */
+		if((path = strtok_r(full_path, delim, &saveptr)) == NULL){
 			if(mode == WRITE)
 				list_write_lock(locks);
 			else if(mode == READ)
 				list_read_lock(locks);
-			break;
+			return current_inumber;
 		}
 		list_read_lock(locks);
 		inode_get(current_inumber, &nType, &data);
-	}
+		full_path = NULL;
 
+	} while((current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL);
+	
 	return current_inumber;
 }
 

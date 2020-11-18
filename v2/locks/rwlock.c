@@ -69,8 +69,10 @@ void rwlock_init(pthread_rwlock_t* rwlock){
 }
 
 /* Locks rwlock or mutex in order to read critical areas of access */
-void rwlock_read_lock(pthread_rwlock_t* rwlock){  
-    if(pthread_rwlock_rdlock(rwlock) != 0){
+/* Ignores EDEADLK error */
+void rwlock_read_lock(pthread_rwlock_t* rwlock){
+    int value = pthread_rwlock_rdlock(rwlock);
+    if(value != 0 && value != EDEADLK){ /* ignores error EDEADLK in case of move command */  
         fprintf(stderr, "Error: Couldn't apply read lock to read-write lock.\n");
         exit(EXIT_FAILURE);
     }
