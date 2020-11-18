@@ -248,7 +248,6 @@ int verify_destination(Locks * locks, char * dest_name, char * dest_parent_name,
 	}
 
 	if(src_parent_inumber != dest_parent_inumber){
-		for(int i = 0; i < locks->num; i++)
 
 		/* checks if destination parent name is part of source parent name. If so, unlocks read-locked */
 		/* i-node in source path which is the same i-node of destination parent i-node to be write-locked */
@@ -262,8 +261,6 @@ int verify_destination(Locks * locks, char * dest_name, char * dest_parent_name,
 			pthread_rwlock_t * src_parent_inode_lock = get_inode_lock(src_parent_inumber);
 			rwlock_unlock(src_parent_inode_lock);
 			int acquired = 0, num_trys = 1;
-
-			printf("%p\n", locks->rwlocks[locks->num - 1]);
 
 			/* interlayer locking and unlocking inode of source parent until it can lock inode of destination parent (prevents deadlocks) */
 			while(!acquired){
