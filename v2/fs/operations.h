@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 
 /* Constants that describe type of operation to realize */
@@ -19,9 +20,13 @@
 
 void init_fs();
 void destroy_fs();
+
+bool check_if_subset(char*, char*);
+void split_parent_child_from_path(char*, char**, char**);
 int exit_and_unlock(Locks*);
 int is_dir_empty(DirEntry*);
 int exit_create_with_message(char*, char*, char*, Locks*, char*);
+
 int create(char*, type);
 int verify_source(Locks*, char*, char*, char*, int*);
 int verify_destination(Locks*, char*, char*, char*, char*, int, int*);

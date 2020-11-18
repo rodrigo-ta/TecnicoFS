@@ -1,0 +1,21 @@
+c a d
+l a
+l a
+l a
+c c d
+c d d
+c e d
+c f d
+c a/a1 d
+c g d
+c b d
+c h d
+l c
+c a/a1/a2 d
+d c
+l c
+l c
+c a/a1/a2/a3 d
+l c
+l c
+m a/a1/a2/a3 a/a1

@@ -3,6 +3,47 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
+ * Initializes tecnicofs and creates root node.
+ */
+void init_fs() {
+	inode_table_init();
+	
+	/* create root inode */
+	int root = generate_new_inumber();
+	inode_create(T_DIRECTORY, root);
+	
+	if (root != FS_ROOT) {
+		printf("failed to create node for tecnicofs root\n");
+		exit(EXIT_FAILURE);
+	}
+}
+
+
+/*
+ * Destroy tecnicofs and inode table
+ */
+void destroy_fs() {
+	inode_table_destroy();
+}
+
+/*
+ * Check if first string is a subset of second string
+ * Input:
+ *  - str1: first string
+ *  - str2: second string
+ * Returns:
+ *  - true: if first string is a subset of second string
+ *  - false: if first string is not a subset of second string
+ */
+bool check_if_subset(char * str1, char * str2){
+	bool is_subset = true;
+	for(int i = 0; i < strlen(str1); i++)
+		for(int j = 0; j < strlen(str2); j++)
+			if(str1[i] != str2[i])
+				is_subset = false;
+	return is_subset;
+}
 
 /* Given a path, fills pointers with strings for the parent path and child
  * file name
@@ -37,31 +78,6 @@ void split_parent_child_from_path(char * path, char ** parent, char ** child) {
 	*parent = path;
 	*child = path + last_slash_location + 1;
 
-}
-
-
-/*
- * Initializes tecnicofs and creates root node.
- */
-void init_fs() {
-	inode_table_init();
-	
-	/* create root inode */
-	int root = generate_new_inumber();
-	inode_create(T_DIRECTORY, root);
-	
-	if (root != FS_ROOT) {
-		printf("failed to create node for tecnicofs root\n");
-		exit(EXIT_FAILURE);
-	}
-}
-
-
-/*
- * Destroy tecnicofs and inode table
- */
-void destroy_fs() {
-	inode_table_destroy();
 }
 
 /*
@@ -282,8 +298,25 @@ int move(char * src_name, char * dest_name){
 	char *src_parent_name, *src_child_name, src_name_copy[MAX_FILE_NAME], *dest_parent_name, *dest_child_name, dest_name_copy[MAX_FILE_NAME];
 	int src_inumbers[MAXINUMBERS], dest_inumbers[MAXINUMBERS], src_parent_inumber, src_child_inumber, dest_parent_inumber;
 
+	/* split source path */
 	strcpy(src_name_copy, src_name);
 	split_parent_child_from_path(src_name_copy, &src_parent_name, &src_child_name);
+
+	/* split destination path */
+	strcpy(dest_name_copy, dest_name);
+	split_parent_child_from_path(dest_name_copy, &dest_parent_name, &dest_child_name);
+
+	/* check if both paths are the same */
+	if(strcmp(src_name, dest_name) == 0){
+		printf("failed to move %s to %s. Source and destination paths are the same.\n", src_name, dest_name);
+		return FAIL;
+	}
+
+	/* check if destination path is a subpath of source path */
+	if(check_if_subset(src_name, dest_name) == true){
+		printf("failed to move %s to %s. Cannot move to a subdirectory of itself.\n", src_name, dest_name);
+		return FAIL;
+	}
 
 	if(verify_source(locks, src_name, src_parent_name, src_child_name, src_inumbers) == FAIL)
 		return FAIL;
@@ -293,9 +326,6 @@ int move(char * src_name, char * dest_name){
 
 	list_add_lock(locks, get_inode_lock(src_child_inumber));
 	list_write_lock(locks);
-
-	strcpy(dest_name_copy, dest_name);
-	split_parent_child_from_path(dest_name_copy, &dest_parent_name, &dest_child_name);
 
 	if(verify_destination(locks, dest_name, dest_parent_name, dest_child_name, src_parent_name, src_parent_inumber, dest_inumbers) == FAIL)
 		return FAIL;
@@ -384,10 +414,6 @@ int delete(char *name){
  * Returns:
  *  inumber: identifier of the i-node, if found
  *     FAIL: otherwise
- * locks every path to read except last one:
- * if mode = WRITE (1): locks to write mode when strtok reaches last path
- * if mode = READ (0): locks to read mode when strtok reaches last path
- * 
  */
 int lookup(char *name){
 	int current_inumber;
