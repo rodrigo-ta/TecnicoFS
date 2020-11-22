@@ -247,10 +247,6 @@ int verify_destination(Locks * locks, char * dest_name, char * dest_parent_name,
 		return exit_and_unlock(locks);
 	}
 
-	for(int i = 0; i < locks->num; i++){
-		printf("(%d) p = %p\n", i, locks->rwlocks[i]);
-	}
-
 	if(src_parent_inumber != dest_parent_inumber){
 
 		/* checks if destination parent name is part of source parent name. If so, unlocks read-locked */
@@ -356,7 +352,6 @@ int move(char * src_name, char * dest_name){
 	}
 
 	exit_and_unlock(locks);
-	printf("successful!\n");
 	return SUCCESS;
 }
 
@@ -475,7 +470,6 @@ int lookup_node(char *name, Locks * locks, int mode) {
 				list_write_lock(locks);
 			else if(mode == READ)
 				list_read_lock(locks);
-			free(full_path);
 			return current_inumber;
 		}
 		list_read_lock(locks);
@@ -484,7 +478,6 @@ int lookup_node(char *name, Locks * locks, int mode) {
 
 	} while((current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL);
 	
-	free(full_path);
 	return current_inumber;
 }
 

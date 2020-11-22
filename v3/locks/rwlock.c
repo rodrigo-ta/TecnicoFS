@@ -84,7 +84,6 @@ void rwlock_read_lock(pthread_rwlock_t* rwlock){
 ** If error condition is other than EBUSY, prints error in stderr and exit program.
 */
 int rwlock_try_write_lock(pthread_rwlock_t* rwlock){
-    pthread_rwlock_unlock(rwlock);
     int value = pthread_rwlock_trywrlock(rwlock);
     if(value != 0 && value != EBUSY){
         fprintf(stderr, "Error while trying to lock rwlock in order to write.\n");
