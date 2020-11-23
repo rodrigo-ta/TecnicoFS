@@ -1,10 +1,20 @@
+/* 
+ *
+ * TecnicoFS Client
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "tecnicofs-client-api.h"
-#include "../tecnicofs-api-constants.h"
 
 FILE* inputFile;
 char* serverName;
+
+char serversocketpath[MAX_INPUT_SIZE];
+
+const char * default_socket_dir = "../temp/";
+
 
 static void displayUsage (const char* appName) {
     printf("Usage: %s inputfile server_socket_name\n", appName);
@@ -109,10 +119,17 @@ void *processInput() {
     return NULL;
 }
 
+void create_server_path(){
+    strcpy(serversocketpath, default_socket_dir);
+    strcat(serversocketpath, serverName);
+}
+
+
 int main(int argc, char* argv[]) {
     parseArgs(argc, argv);
+    create_server_path();
 
-    if (tfsMount(serverName) == 0)
+    if (tfsMount(serversocketpath) == 0)
       printf("Mounted! (socket = %s)\n", serverName);
     else {
       fprintf(stderr, "Unable to mount socket: %s\n", serverName);

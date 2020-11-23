@@ -10,10 +10,10 @@ LDFLAGS=-lm
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
 .PHONY: all clean run
 
-all: tecnicofs
+all: tecnicofs-server
 
-tecnicofs: ../fs/state.o ../fs/operations.o ../locks/rwlock.o ../locks/mutex.o ../locks/conditions.o main.o
-	$(LD) $(CFLAGS) $(LDFLAGS) -g -o tecnicofs ../fs/state.o ../fs/operations.o ../locks/rwlock.o ../locks/mutex.o ../locks/conditions.o main.o -lpthread
+tecnicofs-server: ../fs/state.o ../fs/operations.o ../locks/rwlock.o ../locks/mutex.o ../locks/conditions.o tecnicofs-server.o
+	$(LD) $(CFLAGS) $(LDFLAGS) -g -o tecnicofs-server ../fs/state.o ../fs/operations.o ../locks/rwlock.o ../locks/mutex.o ../locks/conditions.o tecnicofs-server.o -lpthread
 
 fs/state.o: ../fs/state.c ../fs/state.h ../tecnicofs-api-constants.h
 	$(CC) $(CFLAGS) -o ../fs/state.o -c ../fs/state.c
@@ -30,12 +30,12 @@ locks/mutex.o: ../locks/mutex.c ../locks/mutex.h
 locks/conditions.o: ../locks/conditions.c ../locks/conditions.h 
 	$(CC) $(CFLAGS) -o ../locks/conditions.o -c ../locks/conditions.c
 
-main.o: main.c ../locks/rwlock.h ../locks/mutex.h ../locks/conditions.h ../fs/operations.h ../fs/state.h ../tecnicofs-api-constants.h
-	$(CC) $(CFLAGS) -o main.o -c main.c
+tecnicofs-server.o: tecnicofs-server.c ../locks/rwlock.h ../locks/mutex.h ../locks/conditions.h ../fs/operations.h ../fs/state.h ../tecnicofs-api-constants.h
+	$(CC) $(CFLAGS) -o tecnicofs-server.o -c tecnicofs-server.c
 
 clean:
 	@echo Cleaning...
-	rm -f ../fs/*.o ../locks/*.o *.o tecnicofs out.txt
+	rm -f ../fs/*.o ../locks/*.o *.o tecnicofs-server
 
-run: tecnicofs
-	./tecnicofs ../inputs/test.txt ../out.txt 4
+run: tecnicofs-server
+	./tecnicofs-server 4 serversocket
