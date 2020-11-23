@@ -51,6 +51,8 @@ void list_write_lock(Locks * locks){
 
 /* Checks if last lock is currently in use. If not, locks it. Return value of trying to lock it*/
 int list_try_write_lock(Locks * locks){
+    printf("trying to lock %p\n", locks->rwlocks[locks->num - 1]);
+	pthread_rwlock_unlock(locks->rwlocks[locks->num - 1]);
     return rwlock_try_write_lock(locks->rwlocks[locks->num - 1]);
 }
 

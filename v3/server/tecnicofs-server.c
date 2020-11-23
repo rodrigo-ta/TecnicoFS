@@ -30,7 +30,7 @@
 int numberThreads = 0;
 
 /* default socket directory */
-const char * default_socket_dir = "../temp/";
+const char * tmp_dir = "/tmp/";
 
 /* server socket variables */
 char * socketName;
@@ -136,7 +136,6 @@ void * process_client(){
         client_addrlen = sizeof(struct sockaddr_un);
         int nread = recvfrom(sockfd, rbuffer, MAX_INPUT_SIZE - 1, 0, (struct sockaddr *)&client_addr, &client_addrlen);
 
-
         /* if no message was received */
         if(nread <= 0)
             continue;
@@ -200,7 +199,7 @@ void run_threads(){
 }
 
 void create_socket_path(){
-    strcpy(socketpath, default_socket_dir);
+    strcpy(socketpath, tmp_dir);
     strcat(socketpath, socketName);
 }
 

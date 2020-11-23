@@ -1,7 +1,10 @@
 #include "tecnicofs-client-api.h"
 
-char * clientsocketpath = "../temp/clientsocket";
-
+/**
+ * Send message to server
+ * Input:
+ *  - sbuffer: buffer with the message
+ */
 void send_message(char * sbuffer){
   if(sendto(sockfd, sbuffer, strlen(sbuffer), 0, (struct sockaddr *)&server_addr, server_len) < 0){
     fprintf(stderr, "tecnicofs-client: error sending message to the server\n");
@@ -9,9 +12,14 @@ void send_message(char * sbuffer){
   }
 }
 
+/**
+ * Receive message from server and gets result value form performed operation
+ * Returns:
+ *  - value of the operation (FAIL or SUCCESS)
+ */
 int receive_message(){
   char rbuffer[MAX_INPUT_SIZE];
-  int nread, result;
+  int nread, result = FAIL;
   if((nread = recvfrom(sockfd, rbuffer, MAX_INPUT_SIZE, 0, 0, 0)) < 0){
     fprintf(stderr, "tecnicofs-client: error receiving message from the server\n");
     exit(EXIT_FAILURE);
@@ -21,6 +29,14 @@ int receive_message(){
   return result;
 }
 
+/**
+ * Requests create operation
+ * Input:
+ *  - filename: name of the file to be created
+ *  - nodeType: type of file
+ * Returns:
+ *  - value of the operation (FAIL or SUCCESS)
+ */
 int tfsCreate(char *filename, char nodeType) {
   char sbuffer[MAX_INPUT_SIZE];
   int result = FAIL;
@@ -31,6 +47,13 @@ int tfsCreate(char *filename, char nodeType) {
   return result;
 }
 
+/**
+ * Requests delete operation
+ * Input:
+ *  - path: is the path to be deleted
+ * Returns:
+ *  - value of the operation (FAIL or SUCCESS)
+ */
 int tfsDelete(char *path) {
   char sbuffer[MAX_INPUT_SIZE];
   int result = FAIL;
@@ -41,6 +64,14 @@ int tfsDelete(char *path) {
   return result;
 }
 
+/**
+ * Requests move operation
+ * Input:
+ *  - from: is the source path
+ *  - to: is the destination path
+ * Returns:
+ *  - value of the operation (FAIL or SUCCESS)
+ */
 int tfsMove(char *from, char *to) {
   char sbuffer[MAX_INPUT_SIZE];
   int result = FAIL;
@@ -51,6 +82,13 @@ int tfsMove(char *from, char *to) {
   return result;
 }
 
+/**
+ * Requests lookup operation
+ * Input:
+ *  - path: is the path to be looked up
+ * Returns:
+ *  - value of the operation (FAIL or SUCCESS)
+ */
 int tfsLookup(char *path) {
   char sbuffer[MAX_INPUT_SIZE];
   int result = FAIL;
@@ -61,7 +99,15 @@ int tfsLookup(char *path) {
   return result;
 }
 
-int tfsMount(char * sockPath) {
+/**
+ * Mounts client and server sockets
+ * Input:
+ *  - server_socket_path
+ *  - client_socket_path
+ * Returns
+ * - FAIL or SUCCESS
+ */
+int tfsMount(char * server_socket_path, char * client_socket_path) {
   /* create socket */
   if((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0){
     fprintf(stderr, "tecnicofs-client: can't open socket\n");
@@ -69,10 +115,10 @@ int tfsMount(char * sockPath) {
   }
 
   /* just to prevent cases where last application exit with error, without unlinking socket */
-  unlink(clientsocketpath);
+  unlink(client_socket_path);
 
   /* set client socket address */
-  client_len = set_socket_address(clientsocketpath, &client_addr);
+  client_len = set_socket_address(client_socket_path, &client_addr);
 
   /* bind client socket */
   if(bind(sockfd, (struct sockaddr *) &client_addr, client_len) < 0){
@@ -81,13 +127,21 @@ int tfsMount(char * sockPath) {
   }
 
   /* set server socket address */
-  server_len = set_socket_address(sockPath, &server_addr);
+  server_len = set_socket_address(server_socket_path, &server_addr);
 
   return SUCCESS;
 }
 
-int tfsUnmount() {
-  if(unlink(clientsocketpath) != 0){
+/**
+ * Unmounts client and server sockets
+ * Input:
+ *  - server_socket_path
+ *  - client_socket_path
+ * Returns
+ * - FAIL or SUCCESS
+ */
+int tfsUnmount(char * client_socket_path) {
+  if(unlink(client_socket_path) != 0){
     fprintf(stderr, "tecnicofs-client: error unlinking client socket path\n");
     return FAIL;
   }
@@ -100,6 +154,14 @@ int tfsUnmount() {
   return SUCCESS;
 }
 
+/**
+ * Set socket address of a specified path
+ * Inputs:
+ *  - path: path of the socket
+ *  - addr: address to be set
+ * Returns:
+ *  - 0 or length of the address
+ */
 int set_socket_address(char *path, struct sockaddr_un *addr) {
   if (addr == NULL)
     return 0;

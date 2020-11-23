@@ -6,15 +6,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "tecnicofs-client-api.h"
 
 FILE* inputFile;
 char* serverName;
 
-char serversocketpath[MAX_INPUT_SIZE];
+char * server_socket_path;
+char * client_socket_path;
 
-const char * default_socket_dir = "../temp/";
-
+/* default socket directory */
+const char * tmp_dir = "/tmp/";
 
 static void displayUsage (const char* appName) {
     printf("Usage: %s inputfile server_socket_name\n", appName);
@@ -119,17 +122,29 @@ void *processInput() {
     return NULL;
 }
 
-void create_server_path(){
-    strcpy(serversocketpath, default_socket_dir);
-    strcat(serversocketpath, serverName);
+/* creates sockets paths with tmp_dir */
+void create_sockets_path(){
+    /* create server socket path */
+    server_socket_path = malloc((strlen(tmp_dir) + strlen(serverName) + 1) * sizeof(char));
+    sprintf(server_socket_path, "%s%s", tmp_dir, serverName);
+
+    /* create client socket path */
+    client_socket_path = malloc((strlen(tmp_dir) + strlen("clientsocket") + 1) * sizeof(char));
+    sprintf(client_socket_path, "%s%s%d", tmp_dir, "clientsocket", getpid());
+}
+
+/* free memory of sockets path */
+void free_sockets_path(){
+    free(server_socket_path);
+    free(client_socket_path);
 }
 
 
 int main(int argc, char* argv[]) {
     parseArgs(argc, argv);
-    create_server_path();
+    create_sockets_path();
 
-    if (tfsMount(serversocketpath) == 0)
+    if (tfsMount(server_socket_path, client_socket_path) == 0)
       printf("Mounted! (socket = %s)\n", serverName);
     else {
       fprintf(stderr, "Unable to mount socket: %s\n", serverName);
@@ -138,7 +153,7 @@ int main(int argc, char* argv[]) {
 
     processInput();
 
-    tfsUnmount();
+    tfsUnmount(client_socket_path);
 
     exit(EXIT_SUCCESS);
 }

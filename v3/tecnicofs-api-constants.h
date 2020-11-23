@@ -8,7 +8,6 @@
 #define SUCCESS 0
 #define FAIL -1
 
-
 typedef enum permission { NONE, WRITE, READ, RW } permission;
 typedef enum type { T_FILE, T_DIRECTORY, T_NONE } type;
 

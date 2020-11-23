@@ -17,12 +17,15 @@ int sockfd;
 socklen_t server_len, client_len;
 struct sockaddr_un server_addr, client_addr;
 
-int tfsCreate(char *path, char nodeType);
-int tfsDelete(char *path);
-int tfsLookup(char *path);
-int tfsMove(char *from, char *to);
-int tfsMount(char* serverName);
-int tfsUnmount();
+void send_message(char*);
+int receive_message();
+
+int tfsCreate(char*, char);
+int tfsDelete(char*);
+int tfsLookup(char*);
+int tfsMove(char*, char*);
+int tfsMount(char*, char*);
+int tfsUnmount(char*);
 
 int set_socket_address(char*, struct sockaddr_un*);
 

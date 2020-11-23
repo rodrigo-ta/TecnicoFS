@@ -265,11 +265,19 @@ int verify_destination(Locks * locks, char * dest_name, char * dest_parent_name,
 			/* interlayer locking and unlocking inode of source parent until it can lock inode of destination parent (prevents deadlocks) */
 			while(!acquired){
 				rwlock_write_lock(src_parent_inode_lock);
-				if(list_try_write_lock(locks) == 0)
+				printf("num trys = %d\n", num_trys);
+				printf("unlocking %p\n", locks->rwlocks[locks->num - 1]);
+				pthread_rwlock_unlock(locks->rwlocks[locks->num - 1]);
+				int value;
+				if((value = list_try_write_lock(locks)) == 0)
 					acquired = 1;
+
 				else{
 					rwlock_unlock(src_parent_inode_lock);
 					usleep((rand()%(++num_trys * MAXSLEEPTIME)) * 1000); // sleep for miliseconds (increases with number of tries)
+				
+				if(value == EBUSY)
+					printf("EBUSY\n");
 				}
 			}
 		}
