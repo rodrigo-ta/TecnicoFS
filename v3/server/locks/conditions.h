@@ -9,10 +9,10 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-void cond_init_all(pthread_cond_t*, pthread_cond_t*);
+void cond_init(pthread_cond_t*);
 void cond_wait(pthread_cond_t*, pthread_mutex_t*);
 void cond_signal(pthread_cond_t*);
 void cond_broadcast(pthread_cond_t*);
-void cond_destroy_all(pthread_cond_t*, pthread_cond_t*);
+void cond_destroy(pthread_cond_t*);
 
 #endif

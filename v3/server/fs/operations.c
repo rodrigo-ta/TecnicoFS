@@ -481,13 +481,23 @@ int lookup_node(char *name, Locks * locks, int mode) {
 	return current_inumber;
 }
 
-
 /*
  * Prints tecnicofs tree.
  * Input:
- *  - fp: pointer to output file
+ *  - filename: name of output file
  */
-void print_tecnicofs_tree(FILE *fp){
+int print_tecnicofs_tree(char * filename){
+	FILE *fp = fopen(filename, "w");
+    if(!fp){
+        printf("Error opening output file %s\n", filename);
+		return FAIL;
+	}
+	
 	inode_print_tree(fp, FS_ROOT, "");
-	fclose(fp);
+	
+	if(fclose(fp) != 0){
+		printf("Error closing output file %s\n", filename);
+		return FAIL;
+	}
+	return SUCCESS;
 }

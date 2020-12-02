@@ -4,13 +4,9 @@
 
 #include "conditions.h"
 
-/* Initializes all condition variables */
-void cond_init_all(pthread_cond_t * cond1, pthread_cond_t * cond2){
-    if(pthread_cond_init(cond1, NULL) != 0){
-        fprintf(stderr, "Error: Couldn't initialize condition variable\n");
-        exit(EXIT_FAILURE);
-    }
-    if(pthread_cond_init(cond2, NULL) != 0){
+/* Initializes condition variable */
+void cond_init(pthread_cond_t * cond){
+    if(pthread_cond_init(cond, NULL) != 0){
         fprintf(stderr, "Error: Couldn't initialize condition variable\n");
         exit(EXIT_FAILURE);
     }
@@ -40,13 +36,9 @@ void cond_broadcast(pthread_cond_t * cond){
     }
 }
 
-/* Destroy all condition variables*/
-void cond_destroy_all(pthread_cond_t * cond1, pthread_cond_t * cond2){
-    if(pthread_cond_destroy(cond1) != 0){
-        fprintf(stderr, "Error: Couldn't destroy condition variable\n");
-        exit(EXIT_FAILURE);
-    }
-    if(pthread_cond_destroy(cond2) != 0){
+/* Destroy condition variable */
+void cond_destroy(pthread_cond_t * cond){
+    if(pthread_cond_destroy(cond) != 0){
         fprintf(stderr, "Error: Couldn't destroy condition variable\n");
         exit(EXIT_FAILURE);
     }

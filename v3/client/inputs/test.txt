@@ -1,11 +1,4 @@
-c /d1 d
-c /d2 d
-l /d2
-l /d2
-l /d2
-c /d2/f4 f
-c /d1/f13 f
-l /d2
-l /d2
-l /d2
-m /d1/f13 /d2/f4
+p output1
+p output2
+p output3
+p output4

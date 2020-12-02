@@ -22,22 +22,26 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "../fs/operations.h"
-#include "../locks/mutex.h"
-#include "../locks/conditions.h"
+#include "fs/operations.h"
+#include "locks/mutex.h"
+#include "locks/conditions.h"
 #include "../tecnicofs-api-constants.h"
 
 int numberThreads = 0;
 
-/* default socket directory */
-const char * tmp_dir = "/tmp/";
-
 /* server socket variables */
 char * socketName;
-char socketpath[MAX_INPUT_SIZE];
+char socket_path[MAX_INPUT_SIZE];
 int sockfd;
 struct sockaddr_un server_addr;
 socklen_t server_addrlen;
+
+/* variables and conditional variables */
+int threads_waiting_client = 0; // represents if a thread is waiting for a client message
+int printing = 0; // represents if one of the threads is currently printing a tree
+pthread_mutex_t commands_mutex;
+pthread_mutex_t counting_mutex;
+pthread_cond_t process_commands;
 
 
 
@@ -60,31 +64,44 @@ void display_usage(char* appName){
 int apply_commands(char * command){
     int result = FAIL;
     char token, type;
-    char name[MAX_INPUT_SIZE], src_name[MAX_INPUT_SIZE], dest_name[MAX_INPUT_SIZE];
-    sscanf(command, "%c %s", &token, name);
+    char arg1[MAX_INPUT_SIZE], arg2[MAX_INPUT_SIZE];
+    sscanf(command, "%c %s", &token, arg1);
     switch (token) {
         case 'c':
-            sscanf(command, "%c %s %c", &token, name, &type);
+            sscanf(command, "%c %s %c", &token, arg1, &type);
             switch (type) {
                 case 'f':
-                    result  = create(name, T_FILE);/* condition */
+                    result  = create(arg1, T_FILE);
                     break;
                 case 'd':
-                    result  = create(name, T_DIRECTORY);
+                    result  = create(arg1, T_DIRECTORY);
                     break;
             }
             break;
         case 'l':
-            result  = lookup(name);
+            result  = lookup(arg1);
             break;
 
         case 'd':
-            result = delete(name);
+            result = delete(arg1);
             break;
 
         case 'm':
-            sscanf(command, "%c %s %s", &token, src_name, dest_name);
-            result = move(src_name, dest_name);
+            sscanf(command, "%c %s %s", &token, arg1, arg2);
+            result = move(arg1, arg2);
+            break;
+
+        case 'p':
+            sscanf(command, "%c %s", &token, arg1);
+            printing = 1;
+            
+            /* wait until all threads complete their operation */
+            while(threads_waiting_client < numberThreads - 1);
+
+            result = print_tecnicofs_tree(arg1);
+
+            printing = 0;
+            cond_broadcast(&process_commands);
             break;
     }
     return result;
@@ -104,6 +121,7 @@ void parse_args(int argc, char* argv[]){
         display_usage(argv[0]);
 }
 
+/* Set socket address */
 int set_socket_address(char *path, struct sockaddr_un *addr) {
     if (addr == NULL)
         return 0;
@@ -116,14 +134,19 @@ int set_socket_address(char *path, struct sockaddr_un *addr) {
     return SUN_LEN(addr);
 }
 
+/* Create socket associated with a socket path */
 void * create_socket(){
     if((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0)
         exit_with_error("tecnicofs-server: can't open socket\n");
 
-    server_addrlen = set_socket_address(socketpath, &server_addr);
+    server_addrlen = set_socket_address(socket_path, &server_addr);
 
     if(bind(sockfd, (struct sockaddr *) &server_addr, server_addrlen) < 0)
         exit_with_error("tecnicofs-server: bind error\n");
+
+    printf("======= RUNNING SERVER =======\n");
+    printf("Socket Path: %s\n", socket_path);
+
     return NULL;
 }
 
@@ -134,8 +157,14 @@ void * process_client(){
         char rbuffer[MAX_INPUT_SIZE], sbuffer[sizeof(int) + 1];
 
         client_addrlen = sizeof(struct sockaddr_un);
-        int nread = recvfrom(sockfd, rbuffer, MAX_INPUT_SIZE - 1, 0, (struct sockaddr *)&client_addr, &client_addrlen);
 
+        /* increments number of threads waiting for client */
+        mutex_lock(&counting_mutex);
+        threads_waiting_client++;
+        mutex_unlock(&counting_mutex);
+
+        int nread = recvfrom(sockfd, rbuffer, MAX_INPUT_SIZE - 1, 0, (struct sockaddr *)&client_addr, &client_addrlen);
+        
         /* if no message was received */
         if(nread <= 0)
             continue;
@@ -143,6 +172,18 @@ void * process_client(){
         rbuffer[nread] = '\0';
 
         printf("%s\n", rbuffer);
+
+        /* puts thread on wait if another thread is currently printing a tree */
+        mutex_lock(&commands_mutex);
+        while(printing == 1)
+            cond_wait(&process_commands, &commands_mutex);
+
+        mutex_unlock(&commands_mutex);
+        
+        /* decrements number of threads waiting for client */
+        mutex_lock(&counting_mutex);
+        threads_waiting_client--;
+        mutex_unlock(&counting_mutex);
 
         int result = apply_commands(rbuffer);
         sprintf(sbuffer, "%d", result);
@@ -186,6 +227,7 @@ void run_threads(){
     for(int i = 0; i < numberThreads; i++){
         if(pthread_join(slave_threads[i], NULL) != 0)
             exit_with_error("Error joining thread.\n");
+        printf("completed %d\n", i);
     }
 
     /* stop counting time */
@@ -199,8 +241,8 @@ void run_threads(){
 }
 
 void create_socket_path(){
-    strcpy(socketpath, tmp_dir);
-    strcat(socketpath, socketName);
+    strcpy(socket_path, tmp_dir);
+    strcat(socket_path, socketName);
 }
 
 int main(int argc, char* argv[]) {
@@ -208,16 +250,26 @@ int main(int argc, char* argv[]) {
     create_socket_path();
 
     /* just to prevent cases where last application exit with error, without unlinking socket */
-    unlink(socketpath);
+    unlink(socket_path);
 
+    /* init all */
     init_fs();
+    mutex_init(&commands_mutex);
+    mutex_init(&counting_mutex);
+    cond_init(&process_commands);
+
     run_threads();
+
+    /* destroy all */
     destroy_fs();
+    mutex_destroy(&commands_mutex);
+    mutex_destroy(&counting_mutex);
+    cond_destroy(&process_commands);
 
     if(close(sockfd) != 0)
         exit_with_error("tecnicofs-server: error closing socket\n");
 
-    if(unlink(socketpath) != 0)
+    if(unlink(socket_path) != 0)
         exit_with_error("tecnicofs-client: error unlinking client socket path\n");
 
     exit(EXIT_SUCCESS);

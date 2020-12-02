@@ -21,8 +21,11 @@ tecnicofs-client.o: tecnicofs-client.c tecnicofs-client-api.h
 tecnicofs-client-api.o: tecnicofs-client-api.c ../tecnicofs-api-constants.h tecnicofs-client-api.h
 	$(CC) $(CFLAGS) -o tecnicofs-client-api.o -c tecnicofs-client-api.c
 
-run: tecnicofs-client
+run1: tecnicofs-client
 	./tecnicofs-client inputs/test1.txt serversocket
+
+run2: tecnicofs-client
+	./tecnicofs-client inputs/test.txt serversocket
 
 clean:
 	@echo Cleaning...

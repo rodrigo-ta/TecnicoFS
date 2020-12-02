@@ -13,11 +13,8 @@
 FILE* inputFile;
 char* serverName;
 
-char * server_socket_path;
-char * client_socket_path;
-
-/* default socket directory */
-const char * tmp_dir = "/tmp/";
+char server_socket_path[MAX_SOCKET_PATH];
+char client_socket_path[MAX_SOCKET_PATH];
 
 static void displayUsage (const char* appName) {
     printf("Usage: %s inputfile server_socket_name\n", appName);
@@ -111,6 +108,15 @@ void *processInput() {
                 else
                   printf("Unable to move: %s to %s\n", arg1, arg2);
                 break;
+            case 'p':
+                if(numTokens != 2)
+                    errorParse();
+                res = tfsPrint(arg1);
+                if(!res)
+                    printf("Print to %s successful!\n", arg1);
+                else
+                    printf("Print to %s not successful!\n", arg1);
+                break;
             case '#':
                 break;
             default: { /* error */
@@ -125,20 +131,11 @@ void *processInput() {
 /* creates sockets paths with tmp_dir */
 void create_sockets_path(){
     /* create server socket path */
-    server_socket_path = malloc((strlen(tmp_dir) + strlen(serverName) + 1) * sizeof(char));
     sprintf(server_socket_path, "%s%s", tmp_dir, serverName);
 
     /* create client socket path */
-    client_socket_path = malloc((strlen(tmp_dir) + strlen("clientsocket") + 1) * sizeof(char));
     sprintf(client_socket_path, "%s%s%d", tmp_dir, "clientsocket", getpid());
 }
-
-/* free memory of sockets path */
-void free_sockets_path(){
-    free(server_socket_path);
-    free(client_socket_path);
-}
-
 
 int main(int argc, char* argv[]) {
     parseArgs(argc, argv);

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../tecnicofs-api-constants.h"
+#include "../../tecnicofs-api-constants.h"
 #include "../locks/rwlock.h"
 #include "../locks/mutex.h"
 
@@ -57,6 +57,7 @@ int inode_set_file(int, char*, int);
 int dir_reset_entry(int, int);
 int dir_add_entry(int, int, char*);
 void inode_print_tree(FILE*, int, char*);
+void inode_print_tree_aux(FILE*, int, char*);
 
 
 #endif /* INODES_H */

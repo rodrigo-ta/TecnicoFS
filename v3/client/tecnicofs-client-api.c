@@ -100,6 +100,21 @@ int tfsLookup(char *path) {
 }
 
 /**
+ * Request print operation. Receives print buffer and writes it to output file.
+ * Input:
+ *  - filename: is the name of the output file
+ */
+int tfsPrint(char *filename){
+  char sbuffer[MAX_INPUT_SIZE];
+  int result = FAIL;
+  sprintf(sbuffer, "%c %s", 'p', filename);
+
+  send_message(sbuffer);
+  result = receive_message();
+  return result;
+}
+
+/**
  * Mounts client and server sockets
  * Input:
  *  - server_socket_path

@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "state.h"
-#include "../tecnicofs-api-constants.h"
 
 /* return address of current inode rwlock */
 pthread_rwlock_t * get_inode_lock(int inumber){

@@ -24,6 +24,7 @@ int tfsCreate(char*, char);
 int tfsDelete(char*);
 int tfsLookup(char*);
 int tfsMove(char*, char*);
+int tfsPrint(char*);
 int tfsMount(char*, char*);
 int tfsUnmount(char*);
 

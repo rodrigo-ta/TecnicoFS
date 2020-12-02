@@ -34,6 +34,6 @@ int move(char*, char*);
 int delete(char*);
 int lookup(char*);
 int lookup_node(char*, Locks*, int);
-void print_tecnicofs_tree(FILE*);
+int print_tecnicofs_tree(char*);
 
 #endif /* FS_H */

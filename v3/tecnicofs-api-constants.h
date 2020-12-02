@@ -4,12 +4,16 @@
 
 #define MAX_FILE_NAME 100
 #define MAX_INPUT_SIZE 100
+#define MAX_SOCKET_PATH 100
 
 #define SUCCESS 0
 #define FAIL -1
 
 typedef enum permission { NONE, WRITE, READ, RW } permission;
 typedef enum type { T_FILE, T_DIRECTORY, T_NONE } type;
+
+/* Default directory for server and client sockets */
+#define tmp_dir "/tmp/so-2020-2021-ex3-023-"
 
 /* Client already has an open session with a TecnicoFS server */
 #define TECNICOFS_ERROR_OPEN_SESSION -1
